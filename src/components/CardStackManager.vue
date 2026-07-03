@@ -1,40 +1,25 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-
-type Screen = 'lock' | 'home' | 'settings' | 'camera' | 'photos'
+import { getScreenMeta, isBackgroundCard } from '../screens/registry'
+import type { ScreenId } from '../screens/types'
 
 const props = defineProps<{
-  screenStack: Screen[]
-  currentScreen: Screen
+  screenStack: ScreenId[]
+  currentScreen: ScreenId
   expanded: boolean
 }>()
 
 const emit = defineEmits<{
-  'navigate-to': [screen: Screen]
+  'navigate-to': [screen: ScreenId]
   'collapse': []
 }>()
-
-interface ScreenMeta {
-  id: Screen
-  label: string
-  color: string
-  icon: string
-}
-
-const screenMeta: Record<Screen, ScreenMeta> = {
-  lock: { id: 'lock', label: 'Lock Screen', color: '#faf9f6', icon: '🔒' },
-  home: { id: 'home', label: 'Home', color: '#faf9f6', icon: '🏠' },
-  settings: { id: 'settings', label: 'Settings', color: '#f5f3ef', icon: '⚙️' },
-  camera: { id: 'camera', label: 'Camera', color: '#1a1a1a', icon: '📷' },
-  photos: { id: 'photos', label: 'Photos', color: '#faf9f6', icon: '🖼️' },
-}
 
 /** Cards to render behind the current screen (max 3, most recent first) */
 const backgroundCards = computed(() => {
   const stack = props.screenStack
-  const cards = stack.slice(0, -1).filter(s => s !== 'lock')
+  const cards = stack.slice(0, -1).filter(s => isBackgroundCard(s))
   return cards.slice(-3).reverse().map((screen, index) => ({
-    ...screenMeta[screen],
+    ...getScreenMeta(screen),
     index,
     depth: index,
   }))
@@ -42,7 +27,7 @@ const backgroundCards = computed(() => {
 
 const hasCards = computed(() => backgroundCards.value.length > 0)
 
-const handleCardClick = (screen: Screen) => {
+const handleCardClick = (screen: ScreenId) => {
   emit('navigate-to', screen)
 }
 

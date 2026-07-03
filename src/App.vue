@@ -1,70 +1,26 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import LockScreen from './components/LockScreen.vue'
-import HomeScreen from './components/home/HomeScreen.vue'
-import SettingsScreen from './components/settings/SettingsScreen.vue'
-import CameraScreen from './components/camera/CameraScreen.vue'
-import PhotosScreen from './components/photos/PhotosScreen.vue'
+import { computed } from 'vue'
 import CardStackManager from './components/CardStackManager.vue'
+import { useScreenStack } from './composables/useScreenStack'
+import { getScreenPlugin } from './screens/registry'
+import type { ScreenId } from './screens/types'
 
-type Screen = 'lock' | 'home' | 'settings' | 'camera' | 'photos'
-const screenStack = ref<Screen[]>(['lock'])
-const currentScreen = computed(() => screenStack.value[screenStack.value.length - 1])
-const cardsExpanded = ref(false)
+const { screenStack, currentScreen, cardsExpanded, dispatch } = useScreenStack()
 
-const goToLock = () => {
-  cardsExpanded.value = false
-  screenStack.value = ['lock']
-}
+const currentPlugin = computed(() => getScreenPlugin(currentScreen.value))
 
-const goHome = () => {
-  cardsExpanded.value = false
-  if (screenStack.value.length > 2) {
-    screenStack.value = screenStack.value.slice(0, 2)
+// Each screen declares its emit-name → navigation-intent mapping in the
+// registry; bind them all so App.vue never needs a per-screen v-if branch.
+const screenListeners = computed(() => {
+  const listeners: Record<string, () => void> = {}
+  for (const [eventName, intent] of Object.entries(currentPlugin.value.events)) {
+    listeners[eventName] = () => dispatch(intent)
   }
-}
+  return listeners
+})
 
-const goBack = () => {
-  cardsExpanded.value = false
-  if (screenStack.value.length > 2) {
-    screenStack.value = screenStack.value.slice(0, -1)
-  }
-}
-
-const navigateToScreen = (screen: Screen) => {
-  cardsExpanded.value = false
-  const idx = screenStack.value.indexOf(screen)
-  if (idx >= 0) {
-    screenStack.value = screenStack.value.slice(0, idx + 1)
-  }
-}
-
-const handleUnlock = () => {
-  screenStack.value = [...screenStack.value, 'home']
-}
-
-const handleOpenSettings = () => {
-  cardsExpanded.value = false
-  screenStack.value = [...screenStack.value, 'settings']
-}
-
-const handleOpenCamera = () => {
-  cardsExpanded.value = false
-  screenStack.value = [...screenStack.value, 'camera']
-}
-
-const handleOpenPhotos = () => {
-  cardsExpanded.value = false
-  screenStack.value = [...screenStack.value, 'photos']
-}
-
-const handleShowCards = () => {
-  cardsExpanded.value = true
-}
-
-const handleCollapseCards = () => {
-  cardsExpanded.value = false
-}
+const onNavigateTo = (screen: ScreenId) => dispatch({ type: 'navigate', screen })
+const onCollapse = () => dispatch({ type: 'collapse' })
 </script>
 
 <template>
@@ -73,45 +29,11 @@ const handleCollapseCards = () => {
       :screen-stack="screenStack"
       :current-screen="currentScreen"
       :expanded="cardsExpanded"
-      @navigate-to="navigateToScreen"
-      @collapse="handleCollapseCards"
+      @navigate-to="onNavigateTo"
+      @collapse="onCollapse"
     >
       <Transition name="slide-up">
-        <LockScreen
-          v-if="currentScreen === 'lock'"
-          key="lock"
-          @unlock="handleUnlock"
-          @open-camera="handleOpenCamera"
-        />
-        <CameraScreen
-          v-else-if="currentScreen === 'camera'"
-          key="camera"
-          @go-back="goBack"
-          @go-home="goHome"
-        />
-        <PhotosScreen
-          v-else-if="currentScreen === 'photos'"
-          key="photos"
-          @go-back="goBack"
-          @go-home="goHome"
-        />
-        <SettingsScreen
-          v-else-if="currentScreen === 'settings'"
-          key="settings"
-          @go-lock="goToLock"
-          @go-back="goBack"
-          @go-home="goHome"
-          @show-cards="handleShowCards"
-        />
-        <HomeScreen
-          v-else
-          key="home"
-          @go-lock="goToLock"
-          @show-cards="handleShowCards"
-          @open-settings="handleOpenSettings"
-          @open-camera="handleOpenCamera"
-          @open-photos="handleOpenPhotos"
-        />
+        <component :is="currentPlugin.component" :key="currentScreen" v-on="screenListeners" />
       </Transition>
     </CardStackManager>
   </div>
