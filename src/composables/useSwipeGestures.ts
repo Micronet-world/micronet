@@ -35,6 +35,8 @@ export function useSwipeGestures(options: SwipeOptions) {
 
   let startX = 0
   let startY = 0
+  let lastX = 0
+  let lastY = 0
   let lockedAxis: 'x' | 'y' | null = null
   let attachedTo: HTMLElement | null = null
 
@@ -45,6 +47,8 @@ export function useSwipeGestures(options: SwipeOptions) {
     lockedAxis = null
     startX = x
     startY = y
+    lastX = x
+    lastY = y
 
     // For mouse: attach move/end on window so dragging outside the element still works
     if (!('touches' in e)) {
@@ -57,6 +61,8 @@ export function useSwipeGestures(options: SwipeOptions) {
     if (!isDragging.value) return
 
     const { x, y } = getXY(e)
+    lastX = x
+    lastY = y
     const dx = x - startX
     const dy = y - startY
 
@@ -86,13 +92,14 @@ export function useSwipeGestures(options: SwipeOptions) {
     }
   }
 
-  function onEnd(e: TouchEvent | MouseEvent) {
+  function onEnd() {
     if (!isDragging.value) return
     isDragging.value = false
 
-    const { x, y } = getXY(e)
-    const dx = x - startX
-    const dy = y - startY
+    // Use the last-known pointer position: end events (e.g. touchend) frequently
+    // carry no coordinates, so re-reading the event would yield NaN deltas.
+    const dx = lastX - startX
+    const dy = lastY - startY
 
     if (lockedAxis === 'y') {
       const vertOk = canSwipeVertical ? canSwipeVertical() : true
@@ -108,8 +115,8 @@ export function useSwipeGestures(options: SwipeOptions) {
     lockedAxis = null
   }
 
-  function onMouseUp(e: MouseEvent) {
-    onEnd(e)
+  function onMouseUp() {
+    onEnd()
     window.removeEventListener('mousemove', onMove)
     window.removeEventListener('mouseup', onMouseUp)
   }
@@ -142,11 +149,13 @@ export function useSwipeGestures(options: SwipeOptions) {
     attachedTo = null
   }
 
-  // Stable function reference — Vue only re-invokes it when the element
-  // actually changes (mount/unmount), not on every reactive re-render.
-  // This avoids the detach/reattach cycle that inline arrow-function refs cause.
+  // Stable function reference. Vue re-invokes template ref functions on
+  // reactive re-renders, so guard against re-attaching to the same element —
+  // otherwise attach()→detach() would drop the window listeners onStart()
+  // adds mid-gesture, breaking mouse drags.
   function targetRef(el: unknown) {
     if (el instanceof HTMLElement) {
+      if (attachedTo === el) return
       attach(el)
     } else if (el === null) {
       detach()
