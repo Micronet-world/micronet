@@ -7,6 +7,11 @@ export interface SwipeOptions {
   threshold?: number
   canSwipeVertical?: () => boolean
   canSwipeHorizontal?: () => boolean
+  /** Fires once when an upward swipe crosses `threshold` and the pointer then
+   *  pauses (stops moving) for `holdDelay` ms while still pressed. When it
+   *  fires, the matching `onSwipeUp` is suppressed on release. */
+  onHoldUp?: () => void
+  holdDelay?: number
 }
 
 function getXY(e: TouchEvent | MouseEvent): { x: number; y: number } {
@@ -27,6 +32,8 @@ export function useSwipeGestures(options: SwipeOptions) {
     threshold = 80,
     canSwipeVertical,
     canSwipeHorizontal,
+    onHoldUp,
+    holdDelay = 250,
   } = options
 
   const dragProgress = ref(0)
@@ -39,6 +46,26 @@ export function useSwipeGestures(options: SwipeOptions) {
   let lastY = 0
   let lockedAxis: 'x' | 'y' | null = null
   let attachedTo: HTMLElement | null = null
+  let holdTimer: ReturnType<typeof setTimeout> | null = null
+  let holdFired = false
+
+  function clearHoldTimer() {
+    if (holdTimer !== null) {
+      clearTimeout(holdTimer)
+      holdTimer = null
+    }
+  }
+
+  function restartHoldTimer() {
+    clearHoldTimer()
+    holdTimer = setTimeout(() => {
+      holdTimer = null
+      if (!holdFired) {
+        holdFired = true
+        onHoldUp?.()
+      }
+    }, holdDelay)
+  }
 
   function onStart(e: TouchEvent | MouseEvent) {
     const { x, y } = getXY(e)
@@ -49,6 +76,8 @@ export function useSwipeGestures(options: SwipeOptions) {
     startY = y
     lastX = x
     lastY = y
+    holdFired = false
+    clearHoldTimer()
 
     // For mouse: attach move/end on window so dragging outside the element still works
     if (!('touches' in e)) {
@@ -76,10 +105,20 @@ export function useSwipeGestures(options: SwipeOptions) {
       if (!vertOk) {
         dragProgress.value = 0
         swipeDirection.value = null
+        clearHoldTimer()
         return
       }
       swipeDirection.value = dy > 0 ? 'down' : dy < 0 ? 'up' : null
       dragProgress.value = Math.min(Math.max(Math.abs(dy) / 150, 0), 1)
+      // Hold-to-trigger: once the upward swipe crosses the threshold, arm a
+      // timer that fires onHoldUp if the pointer stops moving for holdDelay.
+      // Restarting on every qualifying move means continuous swiping never
+      // fires it — only a genuine pause does.
+      if (onHoldUp && swipeDirection.value === 'up' && dy <= -threshold && !holdFired) {
+        restartHoldTimer()
+      } else {
+        clearHoldTimer()
+      }
     } else if (lockedAxis === 'x') {
       const horizOk = canSwipeHorizontal ? canSwipeHorizontal() : true
       if (!horizOk) {
@@ -95,19 +134,23 @@ export function useSwipeGestures(options: SwipeOptions) {
   function onEnd() {
     if (!isDragging.value) return
     isDragging.value = false
+    clearHoldTimer()
 
     // Use the last-known pointer position: end events (e.g. touchend) frequently
     // carry no coordinates, so re-reading the event would yield NaN deltas.
     const dx = lastX - startX
     const dy = lastY - startY
 
-    if (lockedAxis === 'y') {
-      const vertOk = canSwipeVertical ? canSwipeVertical() : true
-      if (vertOk && dy < -threshold && onSwipeUp) onSwipeUp()
-      else if (vertOk && dy > threshold && onSwipeDown) onSwipeDown()
-    } else if (lockedAxis === 'x') {
-      const horizOk = canSwipeHorizontal ? canSwipeHorizontal() : true
-      if (horizOk && dx > threshold && onSwipeRight) onSwipeRight()
+    // If the hold already fired mid-gesture, don't also fire the swipe callback.
+    if (!holdFired) {
+      if (lockedAxis === 'y') {
+        const vertOk = canSwipeVertical ? canSwipeVertical() : true
+        if (vertOk && dy < -threshold && onSwipeUp) onSwipeUp()
+        else if (vertOk && dy > threshold && onSwipeDown) onSwipeDown()
+      } else if (lockedAxis === 'x') {
+        const horizOk = canSwipeHorizontal ? canSwipeHorizontal() : true
+        if (horizOk && dx > threshold && onSwipeRight) onSwipeRight()
+      }
     }
 
     dragProgress.value = 0
@@ -146,6 +189,7 @@ export function useSwipeGestures(options: SwipeOptions) {
     el.removeEventListener('mousedown', onStart)
     window.removeEventListener('mousemove', onMove)
     window.removeEventListener('mouseup', onMouseUp)
+    clearHoldTimer()
     attachedTo = null
   }
 

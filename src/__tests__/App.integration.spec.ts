@@ -60,15 +60,42 @@ describe('App Integration', () => {
     expect(wrapper.find('h1').text()).toBe('Settings')
   })
 
-  it('swiping up on home emits show-cards (does not navigate away)', async () => {
+  it('swiping up on home does not expand cards (requires indicator hold)', async () => {
     const wrapper = mount(App)
     await swipeUp(wrapper, '.lock-screen')
 
-    // Swipe up on home — should NOT navigate to lock
+    // A plain swipe up on the home screen no longer opens the background manager
     await swipeUp(wrapper, '.home-screen')
 
-    // Home should still be visible (no navigation happened)
     expect(wrapper.find('.home-screen').exists()).toBe(true)
+    expect(wrapper.find('.lock-screen').exists()).toBe(false)
+    expect(wrapper.find('.current-screen.expanded').exists()).toBe(false)
+  })
+
+  it('swiping up on the home indicator and holding expands the card stack', async () => {
+    const wrapper = mount(App)
+    await swipeUp(wrapper, '.lock-screen')
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
+
+    const bar = wrapper.find('.home-bar-area')
+    bar.element.dispatchEvent(new TouchEvent('touchstart', {
+      touches: [{ clientY: 300 } as Touch],
+    }))
+    bar.element.dispatchEvent(new TouchEvent('touchmove', {
+      touches: [{ clientY: 250 } as Touch],
+    }))
+    // Pausing for holdDelay fires the hold before the finger lifts
+    vi.advanceTimersByTime(250)
+    await nextTick()
+
+    // Background manager is now expanded (current screen lifts)
+    expect(wrapper.find('.current-screen.expanded').exists()).toBe(true)
+
+    bar.element.dispatchEvent(new TouchEvent('touchend', { touches: [] }))
+    await nextTick()
+
+    // Lifting after the hold keeps it expanded (no navigation back to lock)
+    expect(wrapper.find('.current-screen.expanded').exists()).toBe(true)
     expect(wrapper.find('.lock-screen').exists()).toBe(false)
   })
 
@@ -211,5 +238,20 @@ describe('App Integration', () => {
     const wrapper = mount(App)
     expect(wrapper.find('.backdrop').exists()).toBe(false)
     expect(wrapper.findAll('.background-card.expanded')).toHaveLength(0)
+  })
+
+  it('swiping up on camera opened from lock returns to home', async () => {
+    const wrapper = mount(App)
+
+    // Open the camera directly from the lock screen (stack: lock, camera)
+    await wrapper.find('[aria-label="Camera"]').trigger('click')
+    await nextTick()
+    expect(wrapper.find('.camera-screen').exists()).toBe(true)
+
+    // Swipe up on the camera — should close it and return to home
+    await swipeUp(wrapper, '.camera-screen')
+
+    expect(wrapper.find('.camera-screen').exists()).toBe(false)
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
   })
 })

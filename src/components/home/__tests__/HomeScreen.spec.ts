@@ -51,7 +51,7 @@ describe('HomeScreen', () => {
       expect(wrapper.emitted('go-lock')).toHaveLength(1)
     })
 
-    it('emits show-cards on upward swipe > 80px', async () => {
+    it('does NOT emit show-cards on upward swipe (requires indicator hold)', async () => {
       const wrapper = mount(HomeScreen)
       const screen = wrapper.find('.home-screen')
 
@@ -59,7 +59,8 @@ describe('HomeScreen', () => {
       window.dispatchEvent(new MouseEvent('mousemove', { clientY: 200 }))
       window.dispatchEvent(new MouseEvent('mouseup'))
 
-      expect(wrapper.emitted('show-cards')).toHaveLength(1)
+      expect(wrapper.emitted('show-cards')).toBeUndefined()
+      expect(wrapper.emitted('go-lock')).toBeUndefined()
     })
 
     it('does NOT emit on short swipe', async () => {
@@ -91,7 +92,7 @@ describe('HomeScreen', () => {
       expect(wrapper.emitted('go-lock')).toHaveLength(1)
     })
 
-    it('emits show-cards on upward touch swipe', () => {
+    it('does NOT emit show-cards on upward touch swipe (requires indicator hold)', () => {
       const wrapper = mount(HomeScreen)
       const screen = wrapper.find('.home-screen')
 
@@ -103,7 +104,7 @@ describe('HomeScreen', () => {
       }))
       screen.element.dispatchEvent(new TouchEvent('touchend', { touches: [] }))
 
-      expect(wrapper.emitted('show-cards')).toHaveLength(1)
+      expect(wrapper.emitted('show-cards')).toBeUndefined()
     })
   })
 
@@ -136,6 +137,82 @@ describe('HomeScreen', () => {
       bar.element.dispatchEvent(new TouchEvent('touchend', { touches: [] }))
 
       expect(wrapper.emitted('go-lock')).toBeUndefined()
+    })
+  })
+
+  describe('home bar hold gesture (show-cards)', () => {
+    it('emits show-cards on swipe up + hold (touch)', () => {
+      const wrapper = mount(HomeScreen)
+      const bar = wrapper.find('.home-bar-area')
+
+      bar.element.dispatchEvent(new TouchEvent('touchstart', {
+        touches: [{ clientY: 300 } as Touch],
+      }))
+      bar.element.dispatchEvent(new TouchEvent('touchmove', {
+        touches: [{ clientY: 250 } as Touch],
+      }))
+      // Pausing for holdDelay fires the hold before the finger lifts
+      vi.advanceTimersByTime(250)
+
+      expect(wrapper.emitted('show-cards')).toHaveLength(1)
+
+      bar.element.dispatchEvent(new TouchEvent('touchend', { touches: [] }))
+      // Lifting after the hold must NOT also fire go-lock
+      expect(wrapper.emitted('go-lock')).toBeUndefined()
+    })
+
+    it('emits show-cards on swipe up + hold (mouse)', async () => {
+      const wrapper = mount(HomeScreen)
+      const bar = wrapper.find('.home-bar-area')
+
+      await bar.trigger('mousedown', { clientY: 300 })
+      window.dispatchEvent(new MouseEvent('mousemove', { clientY: 250 }))
+      vi.advanceTimersByTime(250)
+
+      expect(wrapper.emitted('show-cards')).toHaveLength(1)
+
+      window.dispatchEvent(new MouseEvent('mouseup'))
+      expect(wrapper.emitted('go-lock')).toBeUndefined()
+    })
+
+    it('does NOT emit show-cards if released before holdDelay', () => {
+      const wrapper = mount(HomeScreen)
+      const bar = wrapper.find('.home-bar-area')
+
+      bar.element.dispatchEvent(new TouchEvent('touchstart', {
+        touches: [{ clientY: 300 } as Touch],
+      }))
+      bar.element.dispatchEvent(new TouchEvent('touchmove', {
+        touches: [{ clientY: 250 } as Touch],
+      }))
+      // Release just before the hold fires
+      vi.advanceTimersByTime(200)
+      bar.element.dispatchEvent(new TouchEvent('touchend', { touches: [] }))
+
+      expect(wrapper.emitted('show-cards')).toBeUndefined()
+      expect(wrapper.emitted('go-lock')).toHaveLength(1)
+    })
+
+    it('does NOT emit show-cards on continuous swipe without a pause', () => {
+      const wrapper = mount(HomeScreen)
+      const bar = wrapper.find('.home-bar-area')
+
+      bar.element.dispatchEvent(new TouchEvent('touchstart', {
+        touches: [{ clientY: 300 } as Touch],
+      }))
+      // Keep moving: each move resets the hold timer so it never fires
+      bar.element.dispatchEvent(new TouchEvent('touchmove', {
+        touches: [{ clientY: 250 } as Touch],
+      }))
+      vi.advanceTimersByTime(200)
+      bar.element.dispatchEvent(new TouchEvent('touchmove', {
+        touches: [{ clientY: 200 } as Touch],
+      }))
+      vi.advanceTimersByTime(200)
+      bar.element.dispatchEvent(new TouchEvent('touchend', { touches: [] }))
+
+      expect(wrapper.emitted('show-cards')).toBeUndefined()
+      expect(wrapper.emitted('go-lock')).toHaveLength(1)
     })
   })
 

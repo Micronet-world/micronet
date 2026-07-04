@@ -33,6 +33,7 @@ Guidance for agents working in `mobile/` (the Vue 3 lock-screen prototype). Run 
 
 - **`hammerjs` is in `package.json` but is NOT used.** Gestures are hand-rolled in `useSwipeGestures` with native `touch*`/`mouse*` events. Default swipe threshold is 80px; it axis-locks and attaches mouse move/end to `window`. It exposes a **stable `targetRef` function** (not an inline arrow) with a same-element idempotency guard — Vue re-invokes template ref functions on reactive re-renders, so without the guard `attach()→detach()` would strip the window listeners `onStart()` adds mid-gesture. Keep that guard when reusing the composable.
 - `onEnd` resolves the swipe from the **last-known pointer position** tracked in `onMove`, not the end event — `touchend` carries no coordinates, so reading the event yields `NaN` deltas.
+- **Hold gesture (`onHoldUp`/`holdDelay`):** an upward swipe past `threshold` that then *pauses* (no pointer movement for `holdDelay`, default 250ms) fires `onHoldUp` once mid-press and sets a `holdFired` flag, which suppresses the matching `onSwipeUp` on release. The timer is restarted on every qualifying `onMove`, so a continuous swipe never fires it — only a genuine hold does. `onEnd`/`detach` clear the timer. The home screen uses this for the app-switcher (`show-cards`) trigger on the home indicator; a plain swipe-up does nothing.
 
 ## Testing
 

@@ -13,7 +13,6 @@ const emit = defineEmits<{
 const { targetRef, dragProgress, swipeDirection, isDragging } =
   useSwipeGestures({
     onSwipeDown: () => emit('go-lock'),
-    onSwipeUp: () => emit('show-cards'),
   })
 
 const handleSettingsClick = () => {
@@ -28,11 +27,15 @@ const handlePhotosClick = () => {
   emit('open-photos')
 }
 
-// --- Home bar swipe-up gesture (lower threshold) ---
+// --- Home bar gesture: swipe up to lock, swipe up + hold to show cards ---
+// The background manager (app switcher) is a deliberate gesture — swipe up
+// on the home indicator and pause — so it can't be triggered by accident.
 const { targetRef: barTargetRef } =
   useSwipeGestures({
     onSwipeUp: () => emit('go-lock'),
+    onHoldUp: () => emit('show-cards'),
     threshold: 40,
+    holdDelay: 250,
   })
 </script>
 
