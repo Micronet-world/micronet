@@ -44,6 +44,17 @@ describe('useScreenStack', () => {
     expect(screenStack.value).toEqual(['lock', 'home'])
   })
 
+  it('home reveals home when an app was opened from lock (no home in stack)', () => {
+    // Camera is pushed straight from the lock screen: stack ['lock', 'camera']
+    const { screenStack, currentScreen, dispatch } = useScreenStack()
+    dispatch({ type: 'push', screen: 'camera' })
+    expect(screenStack.value).toEqual(['lock', 'camera'])
+
+    dispatch({ type: 'home' })
+    expect(screenStack.value).toEqual(['lock', 'home'])
+    expect(currentScreen.value).toBe('home')
+  })
+
   it('back pops the top screen', () => {
     const { screenStack, currentScreen, dispatch } = useScreenStack()
     dispatch({ type: 'push', screen: 'home' })
@@ -58,6 +69,16 @@ describe('useScreenStack', () => {
     dispatch({ type: 'push', screen: 'home' })
     dispatch({ type: 'back' })
     expect(screenStack.value).toEqual(['lock', 'home'])
+  })
+
+  it('back returns to lock when an app was opened from lock (no home in stack)', () => {
+    const { screenStack, currentScreen, dispatch } = useScreenStack()
+    dispatch({ type: 'push', screen: 'camera' })
+    expect(screenStack.value).toEqual(['lock', 'camera'])
+
+    dispatch({ type: 'back' })
+    expect(screenStack.value).toEqual(['lock'])
+    expect(currentScreen.value).toBe('lock')
   })
 
   it('navigate trims the stack to the target screen', () => {
