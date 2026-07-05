@@ -7,6 +7,7 @@ const emit = defineEmits<{
   'open-settings': []
   'open-camera': []
   'open-photos': []
+  'open-maps': []
 }>()
 
 const { targetRef, dragProgress, swipeDirection, isDragging } =
@@ -24,6 +25,10 @@ const handleCameraClick = () => {
 
 const handlePhotosClick = () => {
   emit('open-photos')
+}
+
+const handleMapsClick = () => {
+  emit('open-maps')
 }
 
 // --- Home bar gesture: swipe up to lock ---
@@ -73,6 +78,16 @@ const { targetRef: barTargetRef } =
             </svg>
           </div>
           <span class="app-name">Photos</span>
+        </button>
+
+        <button class="app-icon" @click="handleMapsClick">
+          <div class="icon-wrapper maps-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+          <span class="app-name">Maps</span>
         </button>
 
         <button class="app-icon" @click="handleSettingsClick">
@@ -179,6 +194,11 @@ const { targetRef: barTargetRef } =
 .photos-icon {
   background: linear-gradient(135deg, #e2ddd6 0%, #d4cec6 100%);
   color: #6b6560;
+}
+
+.maps-icon {
+  background: linear-gradient(135deg, #d4e6f9 0%, #b8d4f0 100%);
+  color: #2d6da8;
 }
 
 .settings-icon {

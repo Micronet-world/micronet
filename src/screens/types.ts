@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 
-export type ScreenId = 'lock' | 'home' | 'settings' | 'camera' | 'photos'
+export type ScreenId = 'lock' | 'home' | 'settings' | 'camera' | 'photos' | 'maps'
 
 export interface ScreenMeta {
   id: ScreenId

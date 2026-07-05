@@ -4,6 +4,7 @@ import HomeScreen from '../components/home/HomeScreen.vue'
 import SettingsScreen from '../components/settings/SettingsScreen.vue'
 import CameraScreen from '../components/camera/CameraScreen.vue'
 import PhotosScreen from '../components/photos/PhotosScreen.vue'
+import MapsScreen from '../components/maps/MapsScreen.vue'
 
 const plugins: ScreenPlugin[] = [
   {
@@ -28,6 +29,7 @@ const plugins: ScreenPlugin[] = [
       'open-settings': { type: 'push', screen: 'settings' },
       'open-camera': { type: 'push', screen: 'camera' },
       'open-photos': { type: 'push', screen: 'photos' },
+      'open-maps': { type: 'push', screen: 'maps' },
     },
   },
   {
@@ -59,6 +61,17 @@ const plugins: ScreenPlugin[] = [
     color: '#faf9f6',
     icon: '🖼️',
     component: PhotosScreen,
+    events: {
+      'go-back': { type: 'back' },
+      'go-home': { type: 'home' },
+    },
+  },
+  {
+    id: 'maps',
+    label: 'Maps',
+    color: '#e8f0fe',
+    icon: '🗺️',
+    component: MapsScreen,
     events: {
       'go-back': { type: 'back' },
       'go-home': { type: 'home' },
