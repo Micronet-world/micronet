@@ -90,14 +90,14 @@ const filters: FilterOption[] = [
 const activeFilterIndex = ref(0)
 
 const filterNames = computed(() => [
-  t('cameraFilters.none'),
-  t('cameraFilters.vivid'),
-  t('cameraFilters.warm'),
-  t('cameraFilters.cool'),
-  t('cameraFilters.mono'),
-  t('cameraFilters.noir'),
-  t('cameraFilters.fade'),
-  t('cameraFilters.dramatic'),
+  t('camera.filters.none'),
+  t('camera.filters.vivid'),
+  t('camera.filters.warm'),
+  t('camera.filters.cool'),
+  t('camera.filters.mono'),
+  t('camera.filters.noir'),
+  t('camera.filters.fade'),
+  t('camera.filters.dramatic'),
 ])
 
 // ─── Focus ──────────────────────────────────────────────────────
@@ -1069,7 +1069,7 @@ onUnmounted(() => {
   width: 60px;
   height: 60px;
   transform: translate(-50%, -50%);
-  color: #ffd60a;
+  color: var(--color-camera-accent);
   pointer-events: none;
   z-index: 10;
 }
@@ -1186,7 +1186,7 @@ onUnmounted(() => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #ff3b30;
+  background: var(--color-danger);
   animation: recPulse 1s ease-in-out infinite;
 }
 
@@ -1220,7 +1220,7 @@ onUnmounted(() => {
 .camera-error svg {
   width: 48px;
   height: 48px;
-  color: #ff3b30;
+  color: var(--color-danger);
 }
 
 .camera-error p {
@@ -1291,7 +1291,7 @@ onUnmounted(() => {
   position: absolute;
   bottom: -2px;
   right: -2px;
-  background: #ffd60a;
+  background: var(--color-camera-accent);
   color: #000;
   font-size: 9px;
   font-weight: 700;
@@ -1334,7 +1334,7 @@ onUnmounted(() => {
 }
 
 .dropdown-menu button.selected {
-  color: #ffd60a;
+  color: var(--color-camera-accent);
 }
 
 .dropdown-enter-active {
@@ -1371,7 +1371,7 @@ onUnmounted(() => {
 .zoom-label {
   font-size: 12px;
   font-weight: 600;
-  color: #ffd60a;
+  color: var(--color-camera-accent);
   min-width: 32px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -1421,7 +1421,7 @@ onUnmounted(() => {
 }
 
 .mode-btn.active {
-  color: #ffd60a;
+  color: var(--color-camera-accent);
 }
 
 .mode-btn.active::after {
@@ -1433,7 +1433,7 @@ onUnmounted(() => {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #ffd60a;
+  background: var(--color-camera-accent);
 }
 
 /* ─── Filter Picker ──────────────────────────────────────────── */
@@ -1471,7 +1471,7 @@ onUnmounted(() => {
 }
 
 .filter-chip.active {
-  background: rgba(255, 214, 10, 0.9);
+  background: var(--color-camera-accent);
   color: #000;
 }
 
@@ -1563,14 +1563,14 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #ff3b30;
+  background: var(--color-danger);
 }
 
 .shutter-btn.recording .shutter-inner {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: #ff3b30;
+  background: var(--color-danger);
   animation: recBtnPulse 1s ease-in-out infinite;
 }
 

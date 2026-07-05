@@ -32,12 +32,12 @@ describe('HomeScreen', () => {
     expect(wrapper.find('.home-bar-area').exists()).toBe(true)
   })
 
-  it('emits open-settings when settings button clicked', async () => {
+  it('emits go-settings when settings button clicked', async () => {
     const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
     const allIcons = wrapper.findAll('.app-icon')
     const settingsBtn = allIcons.find(el => el.find('.app-name').text() === 'Settings')
     await settingsBtn!.trigger('click')
-    expect(wrapper.emitted('open-settings')).toHaveLength(1)
+    expect(wrapper.emitted('go-settings')).toHaveLength(1)
   })
 
   describe('screen swipe gesture (mouse)', () => {

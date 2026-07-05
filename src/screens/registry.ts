@@ -16,7 +16,7 @@ const plugins: ScreenPlugin[] = [
     component: LockScreen,
     events: {
       unlock: { type: 'push', screen: 'home' },
-      'open-camera': { type: 'push', screen: 'camera' },
+      'go-camera': { type: 'push', screen: 'camera' },
     },
   },
   {
@@ -27,11 +27,11 @@ const plugins: ScreenPlugin[] = [
     component: HomeScreen,
     events: {
       'go-lock': { type: 'lock' },
-      'open-settings': { type: 'push', screen: 'settings' },
-      'open-camera': { type: 'push', screen: 'camera' },
-      'open-photos': { type: 'push', screen: 'photos' },
-      'open-maps': { type: 'push', screen: 'maps' },
-      'open-calendar': { type: 'push', screen: 'calendar' },
+      'go-settings': { type: 'push', screen: 'settings' },
+      'go-camera': { type: 'push', screen: 'camera' },
+      'go-photos': { type: 'push', screen: 'photos' },
+      'go-maps': { type: 'push', screen: 'maps' },
+      'go-calendar': { type: 'push', screen: 'calendar' },
     },
   },
   {

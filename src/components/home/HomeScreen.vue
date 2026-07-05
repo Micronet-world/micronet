@@ -7,11 +7,11 @@ const { t } = useI18n()
 
 const emit = defineEmits<{
   'go-lock': []
-  'open-settings': []
-  'open-camera': []
-  'open-photos': []
-  'open-maps': []
-  'open-calendar': []
+  'go-settings': []
+  'go-camera': []
+  'go-photos': []
+  'go-maps': []
+  'go-calendar': []
 }>()
 
 const { targetRef, dragProgress, swipeDirection, isDragging } =
@@ -20,23 +20,23 @@ const { targetRef, dragProgress, swipeDirection, isDragging } =
   })
 
 const handleSettingsClick = () => {
-  emit('open-settings')
+  emit('go-settings')
 }
 
 const handleCameraClick = () => {
-  emit('open-camera')
+  emit('go-camera')
 }
 
 const handlePhotosClick = () => {
-  emit('open-photos')
+  emit('go-photos')
 }
 
 const handleMapsClick = () => {
-  emit('open-maps')
+  emit('go-maps')
 }
 
 const handleCalendarClick = () => {
-  emit('open-calendar')
+  emit('go-calendar')
 }
 
 // --- Home bar gesture: swipe up to lock ---
@@ -156,8 +156,8 @@ const { targetRef: barTargetRef } =
 }
 
 @keyframes breathe {
-  0%, 100% { background-color: #faf9f6; }
-  50% { background-color: #f5f2ec; }
+  0%, 100% { background-color: var(--color-bg); }
+  50% { background-color: var(--color-bg-warm); }
 }
 
 .content {

@@ -304,7 +304,7 @@ onUnmounted(() => {
   width: 24px;
   height: 24px;
   border: 3px solid rgba(0, 0, 0, 0.08);
-  border-top-color: #007aff;
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -354,7 +354,7 @@ onUnmounted(() => {
   transform: translate(-50%, -50%);
   width: 14px;
   height: 14px;
-  background: #007aff;
+  background: var(--color-accent);
   border: 3px solid white;
   border-radius: 50%;
   box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
@@ -397,9 +397,9 @@ onUnmounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: white;
+  background: var(--color-bg);
   border: none;
-  color: #007aff;
+  color: var(--color-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -437,7 +437,7 @@ onUnmounted(() => {
   position: absolute;
   right: 52px;
   top: 0;
-  background: white;
+  background: var(--color-bg);
   border-radius: 12px;
   padding: 4px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -449,7 +449,7 @@ onUnmounted(() => {
   width: 100%;
   padding: 10px 16px;
   font-size: 14px;
-  color: #1a1a1a;
+  color: var(--color-text);
   background: none;
   border: none;
   border-radius: 8px;
@@ -463,7 +463,7 @@ onUnmounted(() => {
 }
 
 .style-option.active {
-  color: #007aff;
+  color: var(--color-accent);
   font-weight: 500;
 }
 
@@ -473,7 +473,7 @@ onUnmounted(() => {
   border-radius: 50%;
   background: white;
   border: none;
-  color: #1a1a1a;
+  color: var(--color-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -488,8 +488,8 @@ onUnmounted(() => {
 }
 
 .control-btn.active {
-  background: #007aff;
-  color: white;
+  background: var(--color-accent);
+  color: #fff;
 }
 
 .control-btn svg {
@@ -505,7 +505,7 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #007aff;
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -547,7 +547,7 @@ onUnmounted(() => {
   gap: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   font-size: 14px;
-  color: #ff3b30;
+  color: var(--color-danger);
 }
 
 .error-toast svg {

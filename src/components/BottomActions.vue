@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 
 const emit = defineEmits<{
-  'open-camera': []
+  'go-camera': []
 }>()
 
 const flashOn = ref(false)
@@ -22,7 +22,7 @@ const toggleFlash = () => { flashOn.value = !flashOn.value }
       </svg>
     </button>
 
-    <button class="action-btn" aria-label="Camera" @click="emit('open-camera')">
+    <button class="action-btn" aria-label="Camera" @click="emit('go-camera')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke-linecap="round" stroke-linejoin="round"/>
         <circle cx="12" cy="13" r="4"/>

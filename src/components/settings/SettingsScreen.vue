@@ -590,13 +590,13 @@ const deviceInfo = {
               <!-- Actions -->
               <div class="settings-group">
                 <div v-if="btSelectedDevice.connected" class="settings-row" @click="handleDisconnect">
-                  <span class="row-label" style="color: #ff3b30">{{ t('common.disconnect') }}</span>
+                  <span class="row-label" style="color: var(--color-danger)">{{ t('common.disconnect') }}</span>
                 </div>
                 <div v-else class="settings-row" @click="handleDeviceTap(btSelectedDevice)">
-                  <span class="row-label" style="color: #007aff">{{ t('common.connect') }}</span>
+                  <span class="row-label" style="color: var(--color-accent)">{{ t('common.connect') }}</span>
                 </div>
                 <div class="settings-row" @click="handleForgetDevice">
-                  <span class="row-label" style="color: #ff3b30">{{ t('settings.forgetThisDevice') }}</span>
+                  <span class="row-label" style="color: var(--color-danger)">{{ t('settings.forgetThisDevice') }}</span>
                 </div>
               </div>
 
@@ -1100,7 +1100,7 @@ const deviceInfo = {
 
 /* === Groups === */
 .settings-group {
-  background: white;
+  background: var(--color-bg);
   border-radius: 12px;
   margin: 0 16px 24px;
   overflow: hidden;
@@ -1164,7 +1164,7 @@ const deviceInfo = {
 }
 
 .airplane-icon.active {
-  color: #34c759;
+  color: var(--color-success);
 }
 
 .row-icon-small {
@@ -1203,14 +1203,14 @@ const deviceInfo = {
 }
 
 .row-value.connected {
-  color: #34c759;
+  color: var(--color-success);
 }
 
 .connected-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #34c759;
+  background: var(--color-success);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -1246,7 +1246,7 @@ const deviceInfo = {
 .checkmark {
   width: 18px;
   height: 18px;
-  color: #007aff;
+  color: var(--color-accent);
   flex-shrink: 0;
   animation: check-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -1294,7 +1294,7 @@ const deviceInfo = {
 }
 
 .toggle input:checked + .toggle-slider {
-  background: #34c759;
+  background: var(--color-success);
 }
 
 .toggle input:checked + .toggle-slider::before {
@@ -1364,7 +1364,7 @@ const deviceInfo = {
 }
 
 .slider::-webkit-slider-thumb:active {
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25), 0 0 0 8px rgba(0, 122, 255, 0.08);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25), 0 0 0 8px var(--color-accent-soft);
 }
 
 /* === Font size picker === */
@@ -1404,9 +1404,9 @@ const deviceInfo = {
 }
 
 .font-size-btn.active {
-  background: #007aff;
+  background: var(--color-accent);
   color: white;
-  border-color: #007aff;
+  border-color: var(--color-accent);
   box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
 }
 
@@ -1441,9 +1441,9 @@ const deviceInfo = {
 .bt-error {
   margin: 0 16px 16px;
   padding: 12px 16px;
-  background: rgba(255, 59, 48, 0.08);
+  background: var(--color-danger-soft);
   border-radius: 10px;
-  color: #ff3b30;
+  color: var(--color-danger);
   font-size: 14px;
   animation: group-enter 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
@@ -1451,9 +1451,9 @@ const deviceInfo = {
 .bt-warning {
   margin: 0 16px 16px;
   padding: 12px 16px;
-  background: rgba(255, 149, 0, 0.08);
+  background: var(--color-warning-soft);
   border-radius: 10px;
-  color: #ff9500;
+  color: var(--color-warning);
   font-size: 14px;
   animation: group-enter 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
@@ -1493,7 +1493,7 @@ const deviceInfo = {
   width: 16px;
   height: 16px;
   border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #007aff;
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1557,7 +1557,7 @@ const deviceInfo = {
   padding: 8px 16px;
   border: none;
   border-radius: 8px;
-  background: #007aff;
+  background: var(--color-accent);
   color: white;
   font-size: 14px;
   font-weight: 500;
@@ -1578,7 +1578,7 @@ const deviceInfo = {
 }
 
 .char-btn.active {
-  background: #ff3b30;
+  background: var(--color-danger);
 }
 
 .char-write {
@@ -1601,7 +1601,7 @@ const deviceInfo = {
 }
 
 .char-write-input:focus {
-  border-color: #007aff;
+  border-color: var(--color-accent);
 }
 
 .char-value {

@@ -649,7 +649,7 @@ function handleDoubleTap() {
 
 .header-title {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text);
   letter-spacing: -0.3px;
 }
@@ -657,7 +657,7 @@ function handleDoubleTap() {
 .select-btn {
   font-size: 15px;
   font-weight: 500;
-  color: #007aff;
+  color: var(--color-accent);
   background: none;
   border: none;
   cursor: pointer;
@@ -670,7 +670,7 @@ function handleDoubleTap() {
 }
 
 .select-btn.cancel {
-  color: #ff3b30;
+  color: var(--color-danger);
 }
 
 /* ─── Tab Bar ────────────────────────────────────────────────── */
@@ -722,7 +722,7 @@ function handleDoubleTap() {
 .select-action-btn {
   font-size: 13px;
   font-weight: 500;
-  color: #007aff;
+  color: var(--color-accent);
   background: none;
   border: none;
   cursor: pointer;
@@ -867,8 +867,8 @@ function handleDoubleTap() {
 }
 
 .select-check.checked {
-  background: #007aff;
-  border-color: #007aff;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .select-check svg {
@@ -911,7 +911,7 @@ function handleDoubleTap() {
 }
 
 .bar-action.danger {
-  color: #ff3b30;
+  color: var(--color-danger);
 }
 
 /* ─── Viewer ─────────────────────────────────────────────────── */
@@ -1018,7 +1018,7 @@ function handleDoubleTap() {
 }
 
 .viewer-action.favorited {
-  color: #ff3b30;
+  color: var(--color-danger);
 }
 
 .viewer-action.danger:active {

@@ -7,7 +7,7 @@ import { useSwipeGestures } from '../composables/useSwipeGestures'
 
 const emit = defineEmits<{
   'unlock': []
-  'open-camera': []
+  'go-camera': []
 }>()
 
 const { targetRef, dragProgress, isDragging } =
@@ -16,7 +16,7 @@ const { targetRef, dragProgress, isDragging } =
   })
 
 const handleOpenCamera = () => {
-  emit('open-camera')
+  emit('go-camera')
 }
 </script>
 
@@ -38,7 +38,7 @@ const handleOpenCamera = () => {
         <TimeDisplay />
       </div>
       <div class="bottom">
-        <BottomActions @open-camera="handleOpenCamera" />
+        <BottomActions @go-camera="handleOpenCamera" />
         <SwipeIndicator />
       </div>
     </div>
@@ -58,8 +58,8 @@ const handleOpenCamera = () => {
 }
 
 @keyframes breathe {
-  0%, 100% { background-color: #faf9f6; }
-  50% { background-color: #f5f2ec; }
+  0%, 100% { background-color: var(--color-bg); }
+  50% { background-color: var(--color-bg-warm); }
 }
 
 .lock-screen.dragging {

@@ -426,7 +426,7 @@ function formatEventTime(time: string): string {
 .wallpaper {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #f8f7f4 0%, #f2f0ec 100%);
+  background: linear-gradient(180deg, var(--color-bg-warm-from) 0%, var(--color-bg-warm-to) 100%);
 }
 
 .content {
@@ -453,7 +453,7 @@ function formatEventTime(time: string): string {
 
 .header-title {
   font-size: 32px;
-  font-weight: 300;
+  font-weight: 600;
   color: var(--color-text);
   letter-spacing: -0.5px;
 }
@@ -583,7 +583,7 @@ function formatEventTime(time: string): string {
 }
 
 .day-cell.is-today .day-number {
-  color: #007aff;
+  color: var(--color-accent);
   font-weight: 600;
 }
 
@@ -633,7 +633,7 @@ function formatEventTime(time: string): string {
   padding: 16px 0 12px;
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, #f2f0ec 0%, #f2f0ec 100%);
+  background: var(--color-bg-warm-to);
   z-index: 2;
 }
 
@@ -729,7 +729,7 @@ function formatEventTime(time: string): string {
   display: flex;
   align-items: stretch;
   gap: 14px;
-  background: white;
+  background: var(--color-bg);
   border-radius: 14px;
   padding: 16px;
   cursor: pointer;
@@ -864,7 +864,7 @@ function formatEventTime(time: string): string {
 .modal-save {
   font-size: 15px;
   font-weight: 500;
-  color: #007aff;
+  color: var(--color-accent);
   background: none;
   border: none;
   cursor: pointer;
@@ -976,7 +976,7 @@ function formatEventTime(time: string): string {
   padding: 4px 0;
   font-size: 15px;
   font-weight: 400;
-  color: #007aff;
+  color: var(--color-accent);
 }
 
 .time-input:focus {
@@ -1032,7 +1032,7 @@ function formatEventTime(time: string): string {
   padding: 14px;
   font-size: 14px;
   font-weight: 500;
-  color: #ff3b30;
+  color: var(--color-danger);
   background: rgba(255, 59, 48, 0.05);
   border: none;
   border-radius: 14px;

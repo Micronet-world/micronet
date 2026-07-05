@@ -1,4 +1,5 @@
 import { ref, shallowRef } from 'vue'
+import { storage } from './storage'
 
 // ─── Web Bluetooth type augmentations ────────────────────────────────
 // These are not yet in the standard lib.dom.d.ts; declare the minimum
@@ -90,19 +91,19 @@ interface StoredDevice {
   name: string
 }
 
-function loadStoredDevices(): StoredDevice[] {
+async function loadStoredDevices(): Promise<StoredDevice[]> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = await storage.get(STORAGE_KEY)
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
   }
 }
 
-function saveStoredDevices(devices: StoredDevice[]): void {
+async function saveStoredDevices(devices: StoredDevice[]): Promise<void> {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(devices))
-  } catch { /* quota exceeded — silently ignore */ }
+    await storage.set(STORAGE_KEY, JSON.stringify(devices))
+  } catch { /* storage unavailable — silently ignore */ }
 }
 
 // ─── Well-known service / characteristic UUIDs ───────────────────────
@@ -183,10 +184,13 @@ export function useBluetooth() {
   const selectedDevice = shallowRef<BTDevice | null>(null)
   const error = ref<string | null>(null)
 
-  // Initialise paired device list from localStorage (names only; real
-  // reconnection requires another user gesture via the browser chooser).
-  const stored = loadStoredDevices()
-  const _knownNames = new Map<string, string>(stored.map(d => [d.id, d.name]))
+  const _knownNames = new Map<string, string>()
+
+  async function init(): Promise<void> {
+    const stored = await loadStoredDevices()
+    for (const d of stored) _knownNames.set(d.id, d.name)
+  }
+  const initPromise = init()
 
   // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -218,7 +222,7 @@ export function useBluetooth() {
 
   function _persistKnownDevices(): void {
     const all = [..._knownNames.entries()].map(([id, name]) => ({ id, name }))
-    saveStoredDevices(all)
+    saveStoredDevices(all).catch(() => {})
   }
 
   function _getOrCreate(list: BTDevice[], raw: BluetoothDevice): BTDevice {
@@ -500,6 +504,7 @@ export function useBluetooth() {
     discoveredDevices,
     selectedDevice,
     error,
+    init: () => initPromise,
     requestDevice,
     connect,
     disconnect,
