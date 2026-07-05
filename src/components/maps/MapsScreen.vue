@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   'go-back': []
@@ -87,7 +90,7 @@ function addUserMarker(lngLat: [number, number]) {
 function getCurrentLocation(): Promise<void> {
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) {
-      locationError.value = 'Geolocation not supported'
+      locationError.value = t('maps.geolocationNotSupported')
       locationLoading.value = false
       locationReady.value = true
       resolve()
@@ -159,8 +162,8 @@ onUnmounted(() => {
           </svg>
         </div>
         <div class="loading-spinner"></div>
-        <p class="loading-text">Finding your location...</p>
-        <span class="loading-hint">We need your location to show the map</span>
+        <p class="loading-text">{{ t('maps.findingLocation') }}</p>
+        <span class="loading-hint">{{ t('maps.locationHint') }}</span>
       </div>
     </div>
 

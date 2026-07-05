@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import SettingsScreen from '../SettingsScreen.vue'
+import { i18n } from '../../../test-setup'
 
 describe('SettingsScreen', () => {
   beforeEach(() => {
@@ -13,13 +14,13 @@ describe('SettingsScreen', () => {
   })
 
   it('renders Settings title on main page', async () => {
-    const wrapper = mount(SettingsScreen)
+    const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
     await nextTick()
     expect(wrapper.find('h1').text()).toBe('Settings')
   })
 
   it('renders search input on main page', async () => {
-    const wrapper = mount(SettingsScreen)
+    const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
     await nextTick()
     const searchInput = wrapper.find('.search-input')
     expect(searchInput.exists()).toBe(true)
@@ -27,7 +28,7 @@ describe('SettingsScreen', () => {
   })
 
   it('renders all main settings rows', async () => {
-    const wrapper = mount(SettingsScreen)
+    const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
     await nextTick()
     const labels = wrapper.findAll('.row-label').map(l => l.text())
     expect(labels).toContain('Airplane Mode')
@@ -40,13 +41,13 @@ describe('SettingsScreen', () => {
   })
 
   it('back button does not appear on main page', () => {
-    const wrapper = mount(SettingsScreen)
+    const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
     expect(wrapper.find('.back-btn').exists()).toBe(false)
   })
 
   describe('search functionality', () => {
     it('filters results when typing in search', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
 
       const input = wrapper.find('.search-input')
@@ -59,7 +60,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows no results for invalid search', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
 
       const input = wrapper.find('.search-input')
@@ -71,7 +72,7 @@ describe('SettingsScreen', () => {
     })
 
     it('hides normal settings list during search', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
 
       const input = wrapper.find('.search-input')
@@ -83,7 +84,7 @@ describe('SettingsScreen', () => {
     })
 
     it('clicking search result navigates to the page', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
 
       const input = wrapper.find('.search-input')
@@ -98,7 +99,7 @@ describe('SettingsScreen', () => {
     })
 
     it('clear button resets search query', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
 
       const input = wrapper.find('.search-input')
@@ -116,7 +117,7 @@ describe('SettingsScreen', () => {
 
   describe('navigation', () => {
     it('navigates to Wi-Fi page', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
       await wifiRow!.trigger('click')
@@ -125,7 +126,7 @@ describe('SettingsScreen', () => {
     })
 
     it('navigates to Bluetooth page', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const btRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Bluetooth'))
       await btRow!.trigger('click')
@@ -134,7 +135,7 @@ describe('SettingsScreen', () => {
     })
 
     it('navigates to Display & Brightness page', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const displayRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Display'))
       await displayRow!.trigger('click')
@@ -143,7 +144,7 @@ describe('SettingsScreen', () => {
     })
 
     it('navigates to Notifications page', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const notifRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Notifications'))
       await notifRow!.trigger('click')
@@ -152,7 +153,7 @@ describe('SettingsScreen', () => {
     })
 
     it('navigates to Privacy & Security page', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const privacyRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Privacy'))
       await privacyRow!.trigger('click')
@@ -161,7 +162,7 @@ describe('SettingsScreen', () => {
     })
 
     it('navigates to About page', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const aboutRow = wrapper.findAll('.settings-row').find(r => r.text() === 'About')
       await aboutRow!.trigger('click')
@@ -170,7 +171,7 @@ describe('SettingsScreen', () => {
     })
 
     it('back button appears on sub-pages', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
       await wifiRow!.trigger('click')
@@ -179,7 +180,7 @@ describe('SettingsScreen', () => {
     })
 
     it('back button navigates to previous page', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
       await wifiRow!.trigger('click')
@@ -192,7 +193,7 @@ describe('SettingsScreen', () => {
     })
 
     it('deep navigation and back works', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
 
       // Go to Wi-Fi
@@ -221,7 +222,7 @@ describe('SettingsScreen', () => {
 
   describe('Wi-Fi page', () => {
     it('shows Wi-Fi toggle', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
       await wifiRow!.trigger('click')
@@ -232,7 +233,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows network list when Wi-Fi enabled', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
       await wifiRow!.trigger('click')
@@ -245,7 +246,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows "Choose a Network" header', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
       await wifiRow!.trigger('click')
@@ -258,7 +259,7 @@ describe('SettingsScreen', () => {
 
   describe('Bluetooth page', () => {
     it('shows Bluetooth toggle', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const btRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Bluetooth'))
       await btRow!.trigger('click')
@@ -269,7 +270,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows scan button when Bluetooth enabled', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const btRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Bluetooth'))
       await btRow!.trigger('click')
@@ -280,7 +281,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows empty state when no devices paired', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const btRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Bluetooth'))
       await btRow!.trigger('click')
@@ -293,7 +294,7 @@ describe('SettingsScreen', () => {
 
   describe('Display & Brightness page', () => {
     it('shows Dark Mode toggle', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const displayRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Display'))
       await displayRow!.trigger('click')
@@ -306,7 +307,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows brightness slider', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const displayRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Display'))
       await displayRow!.trigger('click')
@@ -317,7 +318,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows font size picker', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const displayRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Display'))
       await displayRow!.trigger('click')
@@ -331,7 +332,7 @@ describe('SettingsScreen', () => {
 
   describe('Notifications page', () => {
     it('shows Allow Notifications toggle', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const notifRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Notifications'))
       await notifRow!.trigger('click')
@@ -342,7 +343,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows app notification list when enabled', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const notifRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Notifications'))
       await notifRow!.trigger('click')
@@ -358,7 +359,7 @@ describe('SettingsScreen', () => {
 
   describe('Privacy & Security page', () => {
     it('shows Location Services toggle', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const privacyRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Privacy'))
       await privacyRow!.trigger('click')
@@ -369,7 +370,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows security rows', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const privacyRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Privacy'))
       await privacyRow!.trigger('click')
@@ -383,7 +384,7 @@ describe('SettingsScreen', () => {
 
   describe('About page', () => {
     it('shows device info', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const aboutRow = wrapper.findAll('.settings-row').find(r => r.text() === 'About')
       await aboutRow!.trigger('click')
@@ -397,7 +398,7 @@ describe('SettingsScreen', () => {
     })
 
     it('shows storage bar', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const aboutRow = wrapper.findAll('.settings-row').find(r => r.text() === 'About')
       await aboutRow!.trigger('click')
@@ -408,7 +409,7 @@ describe('SettingsScreen', () => {
     })
 
     it('displays correct device values', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       await nextTick()
       const aboutRow = wrapper.findAll('.settings-row').find(r => r.text() === 'About')
       await aboutRow!.trigger('click')
@@ -424,7 +425,7 @@ describe('SettingsScreen', () => {
 
   describe('swipe gestures', () => {
     it('emits go-lock on downward swipe > 80px', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.settings-screen')
 
       await screen.trigger('mousedown', { clientY: 200 })
@@ -435,7 +436,7 @@ describe('SettingsScreen', () => {
     })
 
     it('does NOT emit on short swipe', async () => {
-      const wrapper = mount(SettingsScreen)
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.settings-screen')
 
       await screen.trigger('mousedown', { clientY: 300 })
@@ -448,7 +449,7 @@ describe('SettingsScreen', () => {
 
   it('cleans up global mouse listeners on unmount', () => {
     const removeSpy = vi.spyOn(window, 'removeEventListener')
-    const wrapper = mount(SettingsScreen)
+    const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
     wrapper.unmount()
 
     const calls = removeSpy.mock.calls.map(c => c[0])

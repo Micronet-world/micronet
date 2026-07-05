@@ -4,6 +4,10 @@ import { ref, computed } from 'vue'
 import { useSwipeGestures } from '../../composables/useSwipeGestures'
 import { useBluetooth } from '../../composables/useBluetooth'
 import type { BTDevice, BTCharacteristic } from '../../composables/useBluetooth'
+import { useI18n } from 'vue-i18n'
+import { setLocale } from '../../i18n'
+
+const { t, locale } = useI18n()
 
 const emit = defineEmits<{
   'go-lock': []
@@ -72,28 +76,28 @@ navigateBackFn = navigateBack
 const searchQuery = ref('')
 
 interface SettingsItem {
-  label: string
+  labelKey: string
   keywords: string[]
   page: Page
 }
 
 const settingsItems: SettingsItem[] = [
-  { label: 'Airplane Mode', keywords: ['airplane', 'flight', 'mode'], page: 'main' },
-  { label: 'Wi-Fi', keywords: ['wifi', 'wi-fi', 'wireless', 'network', 'internet'], page: 'wifi' },
-  { label: 'Bluetooth', keywords: ['bluetooth', 'wireless', 'pair', 'device'], page: 'bluetooth' },
-  { label: 'Display & Brightness', keywords: ['display', 'brightness', 'dark mode', 'screen', 'text', 'font', 'true tone'], page: 'display' },
-  { label: 'Notifications', keywords: ['notifications', 'alerts', 'messages', 'mail', 'calendar', 'photos', 'banner'], page: 'notifications' },
-  { label: 'Privacy & Security', keywords: ['privacy', 'security', 'location', 'face id', 'passcode', 'lock'], page: 'privacy' },
-  { label: 'About', keywords: ['about', 'model', 'version', 'storage', 'device', 'info'], page: 'about' },
+  { labelKey: 'settings.airplaneMode', keywords: ['airplane', 'flight', 'mode', '飞行'], page: 'main' },
+  { labelKey: 'settings.wifi', keywords: ['wifi', 'wi-fi', 'wireless', 'network', 'internet', '无线', '网络'], page: 'wifi' },
+  { labelKey: 'settings.bluetooth', keywords: ['bluetooth', 'wireless', 'pair', 'device', '蓝牙', '配对'], page: 'bluetooth' },
+  { labelKey: 'settings.displayBrightness', keywords: ['display', 'brightness', 'dark mode', 'screen', 'text', 'font', 'true tone', '显示', '亮度', '深色'], page: 'display' },
+  { labelKey: 'settings.notifications', keywords: ['notifications', 'alerts', 'messages', 'mail', 'calendar', 'photos', 'banner', '通知', '消息'], page: 'notifications' },
+  { labelKey: 'settings.privacySecurity', keywords: ['privacy', 'security', 'location', 'face id', 'passcode', 'lock', '隐私', '安全', '定位'], page: 'privacy' },
+  { labelKey: 'settings.about', keywords: ['about', 'model', 'version', 'storage', 'device', 'info', '关于', '型号', '版本', '存储'], page: 'about' },
 ]
 
 const filteredItems = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   if (!q) return []
-  return settingsItems.filter(item =>
-    item.label.toLowerCase().includes(q) ||
-    item.keywords.some(k => k.includes(q))
-  )
+  return settingsItems.filter(item => {
+    const label = t(item.labelKey).toLowerCase()
+    return label.includes(q) || item.keywords.some(k => k.includes(q))
+  })
 })
 
 const handleSearchResultClick = (item: SettingsItem) => {
@@ -281,16 +285,16 @@ const deviceInfo = {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M15 18l-6-6 6-6"/>
           </svg>
-          <span>Back</span>
+          <span>{{ t('common.back') }}</span>
         </button>
         <div class="header-title">
-          <h1 v-if="currentPage === 'main'">Settings</h1>
-          <h1 v-else-if="currentPage === 'wifi'">Wi-Fi</h1>
-          <h1 v-else-if="currentPage === 'bluetooth'">Bluetooth</h1>
-          <h1 v-else-if="currentPage === 'display'">Display &amp; Brightness</h1>
-          <h1 v-else-if="currentPage === 'notifications'">Notifications</h1>
-          <h1 v-else-if="currentPage === 'privacy'">Privacy &amp; Security</h1>
-          <h1 v-else-if="currentPage === 'about'">About</h1>
+          <h1 v-if="currentPage === 'main'">{{ t('settings.title') }}</h1>
+          <h1 v-else-if="currentPage === 'wifi'">{{ t('settings.wifi') }}</h1>
+          <h1 v-else-if="currentPage === 'bluetooth'">{{ t('settings.bluetooth') }}</h1>
+          <h1 v-else-if="currentPage === 'display'">{{ t('settings.displayBrightness') }}</h1>
+          <h1 v-else-if="currentPage === 'notifications'">{{ t('settings.notifications') }}</h1>
+          <h1 v-else-if="currentPage === 'privacy'">{{ t('settings.privacySecurity') }}</h1>
+          <h1 v-else-if="currentPage === 'about'">{{ t('settings.about') }}</h1>
         </div>
       </div>
 
@@ -325,16 +329,16 @@ const deviceInfo = {
               <div v-if="filteredItems.length > 0" class="settings-group search-results">
                 <div
                   v-for="item in filteredItems"
-                  :key="item.label"
+                  :key="item.labelKey"
                   class="settings-row"
                   @click="handleSearchResultClick(item)"
                 >
-                  <span class="row-label">{{ item.label }}</span>
+                  <span class="row-label">{{ t(item.labelKey) }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               </div>
               <div v-else class="no-results">
-                No Results
+                {{ t('settings.noResults') }}
               </div>
             </template>
 
@@ -349,7 +353,7 @@ const deviceInfo = {
                       <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
                     </svg>
                   </div>
-                  <span class="row-label">Airplane Mode</span>
+                  <span class="row-label">{{ t('settings.airplaneMode') }}</span>
                   <label class="toggle" @click.stop>
                     <input type="checkbox" v-model="airplaneMode" />
                     <span class="toggle-slider"></span>
@@ -364,8 +368,8 @@ const deviceInfo = {
                       <circle cx="12" cy="20" r="1"/>
                     </svg>
                   </div>
-                  <span class="row-label">Wi-Fi</span>
-                  <span class="row-value">{{ wifiEnabled ? selectedWifi : 'Off' }}</span>
+                  <span class="row-label">{{ t('settings.wifi') }}</span>
+                  <span class="row-value">{{ wifiEnabled ? selectedWifi : t('common.off') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
                 <div class="settings-row" @click="navigateTo('bluetooth')">
@@ -374,8 +378,8 @@ const deviceInfo = {
                       <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/>
                     </svg>
                   </div>
-                  <span class="row-label">Bluetooth</span>
-                  <span class="row-value">{{ bluetoothEnabled ? 'On' : 'Off' }}</span>
+                  <span class="row-label">{{ t('settings.bluetooth') }}</span>
+                  <span class="row-value">{{ bluetoothEnabled ? t('common.on') : t('common.off') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               </div>
@@ -389,7 +393,7 @@ const deviceInfo = {
                       <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                     </svg>
                   </div>
-                  <span class="row-label">Display &amp; Brightness</span>
+                  <span class="row-label">{{ t('settings.displayBrightness') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
                 <div class="settings-row" @click="navigateTo('notifications')">
@@ -399,7 +403,7 @@ const deviceInfo = {
                       <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
                   </div>
-                  <span class="row-label">Notifications</span>
+                  <span class="row-label">{{ t('settings.notifications') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
                 <div class="settings-row" @click="navigateTo('privacy')">
@@ -408,7 +412,7 @@ const deviceInfo = {
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
                   </div>
-                  <span class="row-label">Privacy &amp; Security</span>
+                  <span class="row-label">{{ t('settings.privacySecurity') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               </div>
@@ -422,7 +426,7 @@ const deviceInfo = {
                       <path d="M12 16v-4M12 8h.01"/>
                     </svg>
                   </div>
-                  <span class="row-label">About</span>
+                  <span class="row-label">{{ t('settings.about') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               </div>
@@ -433,7 +437,7 @@ const deviceInfo = {
           <div v-else-if="currentPage === 'wifi'" key="wifi" class="page">
             <div class="settings-group">
               <div class="settings-row">
-                <span class="row-label">Wi-Fi</span>
+                <span class="row-label">{{ t('settings.wifi') }}</span>
                 <label class="toggle" @click.stop>
                   <input type="checkbox" v-model="wifiEnabled" />
                   <span class="toggle-slider"></span>
@@ -441,7 +445,7 @@ const deviceInfo = {
               </div>
             </div>
             <template v-if="wifiEnabled">
-              <div class="group-header">Choose a Network</div>
+              <div class="group-header">{{ t('settings.chooseNetwork') }}</div>
               <div class="settings-group">
                 <div
                   v-for="(network, i) in wifiNetworks"
@@ -469,10 +473,10 @@ const deviceInfo = {
                   </div>
                 </div>
               </div>
-              <div class="group-header">Other Networks</div>
+              <div class="group-header">{{ t('settings.otherNetworks') }}</div>
               <div class="settings-group">
                 <div class="settings-row">
-                  <span class="row-label" style="color: var(--color-text-secondary)">Ask to Join Networks</span>
+                  <span class="row-label" style="color: var(--color-text-secondary)">{{ t('settings.askToJoinNetworks') }}</span>
                   <label class="toggle" @click.stop>
                     <input type="checkbox" checked disabled />
                     <span class="toggle-slider"></span>
@@ -486,7 +490,7 @@ const deviceInfo = {
           <div v-else-if="currentPage === 'bluetooth'" key="bluetooth" class="page">
             <div class="settings-group">
               <div class="settings-row">
-                <span class="row-label">Bluetooth</span>
+                <span class="row-label">{{ t('settings.bluetooth') }}</span>
                 <label class="toggle" @click.stop>
                   <input type="checkbox" v-model="bluetoothEnabled" />
                   <span class="toggle-slider"></span>
@@ -510,7 +514,7 @@ const deviceInfo = {
                       <path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2"/>
                     </svg>
                   </div>
-                  <span class="row-label">{{ btScanning ? 'Scanning...' : 'Scan for Devices' }}</span>
+                  <span class="row-label">{{ btScanning ? t('settings.scanning') : t('settings.scanForDevices') }}</span>
                   <span v-if="btScanning" class="row-value">
                     <span class="spinner"></span>
                   </span>
@@ -523,12 +527,12 @@ const deviceInfo = {
 
               <!-- Not supported warning -->
               <div v-if="!btSupported" class="bt-warning">
-                Web Bluetooth is not supported in this browser. Use Chrome or Edge on desktop or Android.
+                {{ t('settings.btNotSupported') }}
               </div>
 
               <!-- Paired Devices -->
               <template v-if="btPaired.length > 0">
-                <div class="group-header">My Devices</div>
+                <div class="group-header">{{ t('settings.myDevices') }}</div>
                 <div class="settings-group">
                   <div v-for="(device, i) in btPaired" :key="device.id" class="settings-row" :style="{ animationDelay: `${i * 60}ms` }" @click="handleDeviceTap(device)">
                     <div class="row-icon-small">
@@ -539,7 +543,7 @@ const deviceInfo = {
                     <span class="row-label">{{ device.name }}</span>
                     <span class="row-value" :class="{ connected: device.connected }">
                       <span v-if="device.connected" class="connected-dot"></span>
-                      {{ device.connected ? 'Connected' : 'Not Connected' }}
+                      {{ device.connected ? t('settings.connected') : t('settings.notConnected') }}
                     </span>
                     <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                   </div>
@@ -548,7 +552,7 @@ const deviceInfo = {
 
               <!-- Discovered Devices (not in paired) -->
               <template v-if="unpairedDiscovered.length > 0">
-                <div class="group-header">Other Devices</div>
+                <div class="group-header">{{ t('settings.otherDevices') }}</div>
                 <div class="settings-group">
                   <div v-for="(device, i) in unpairedDiscovered" :key="device.id" class="settings-row" :style="{ animationDelay: `${i * 60}ms` }" @click="handleDeviceTap(device)">
                     <div class="row-icon-small">
@@ -557,7 +561,7 @@ const deviceInfo = {
                       </svg>
                     </div>
                     <span class="row-label">{{ device.name }}</span>
-                    <span class="row-value">{{ device.connected ? 'Connected' : '' }}</span>
+                    <span class="row-value">{{ device.connected ? t('settings.connected') : '' }}</span>
                     <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                   </div>
                 </div>
@@ -568,8 +572,8 @@ const deviceInfo = {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/>
                 </svg>
-                <p>No Devices</p>
-                <span>Tap "Scan for Devices" to find nearby Bluetooth devices.</span>
+                <p>{{ t('settings.noDevices') }}</p>
+                <span>{{ t('settings.scanForDevices') }}</span>
               </div>
             </template>
           </div>
@@ -583,7 +587,7 @@ const deviceInfo = {
                   <span class="row-label">{{ btSelectedDevice.name }}</span>
                   <span class="row-value" :class="{ connected: btSelectedDevice.connected }">
                     <span v-if="btSelectedDevice.connected" class="connected-dot"></span>
-                    {{ btSelectedDevice.connected ? 'Connected' : 'Disconnected' }}
+                    {{ btSelectedDevice.connected ? t('settings.connected') : t('settings.disconnected') }}
                   </span>
                 </div>
               </div>
@@ -591,13 +595,13 @@ const deviceInfo = {
               <!-- Actions -->
               <div class="settings-group">
                 <div v-if="btSelectedDevice.connected" class="settings-row" @click="handleDisconnect">
-                  <span class="row-label" style="color: #ff3b30">Disconnect</span>
+                  <span class="row-label" style="color: #ff3b30">{{ t('common.disconnect') }}</span>
                 </div>
                 <div v-else class="settings-row" @click="handleDeviceTap(btSelectedDevice)">
-                  <span class="row-label" style="color: #007aff">Connect</span>
+                  <span class="row-label" style="color: #007aff">{{ t('common.connect') }}</span>
                 </div>
                 <div class="settings-row" @click="handleForgetDevice">
-                  <span class="row-label" style="color: #ff3b30">Forget This Device</span>
+                  <span class="row-label" style="color: #ff3b30">{{ t('settings.forgetThisDevice') }}</span>
                 </div>
               </div>
 
@@ -618,17 +622,17 @@ const deviceInfo = {
                       <div v-if="selectedChar?.uuid === char.uuid" class="char-actions">
                         <!-- Read button -->
                         <button v-if="char.properties.read" class="char-btn" @click.stop="handleReadChar(char)" :disabled="btActionLoading">
-                          Read
+                          {{ t('common.read') }}
                         </button>
                         <!-- Notify toggle -->
                         <button v-if="char.properties.notify || char.properties.indicate" class="char-btn" :class="{ active: char.notifying }" @click.stop="handleToggleNotify(char)" :disabled="btActionLoading">
-                          {{ char.notifying ? 'Stop Notify' : 'Notify' }}
+                          {{ char.notifying ? t('common.stopNotify') : t('common.notify') }}
                         </button>
                         <!-- Write input -->
                         <div v-if="char.properties.write || char.properties.writeWithoutResponse" class="char-write">
-                          <input type="text" v-model="charWriteInput" placeholder="Value to write" class="char-write-input" @click.stop />
+                          <input type="text" v-model="charWriteInput" :placeholder="t('settings.valueToWrite')" class="char-write-input" @click.stop />
                           <button class="char-btn" @click.stop="handleWriteChar(char)" :disabled="btActionLoading || !charWriteInput">
-                            Write
+                            {{ t('common.write') }}
                           </button>
                         </div>
                         <!-- Value display -->
@@ -644,7 +648,7 @@ const deviceInfo = {
               <!-- Loading state -->
               <div v-if="btSelectedDevice.connected && btSelectedDevice.services.length === 0" class="bt-empty">
                 <span class="spinner"></span>
-                <p>Discovering services...</p>
+                <p>{{ t('settings.discoveringServices') }}</p>
               </div>
             </template>
           </div>
@@ -653,21 +657,21 @@ const deviceInfo = {
           <div v-else-if="currentPage === 'display'" key="display" class="page">
             <div class="settings-group">
               <div class="settings-row">
-                <span class="row-label">Dark Mode</span>
+                <span class="row-label">{{ t('settings.darkMode') }}</span>
                 <label class="toggle" @click.stop>
                   <input type="checkbox" v-model="darkMode" />
                   <span class="toggle-slider"></span>
                 </label>
               </div>
               <div class="settings-row">
-                <span class="row-label">True Tone</span>
+                <span class="row-label">{{ t('settings.trueTone') }}</span>
                 <label class="toggle" @click.stop>
                   <input type="checkbox" checked />
                   <span class="toggle-slider"></span>
                 </label>
               </div>
               <div class="settings-row">
-                <span class="row-label">Auto-Brightness</span>
+                <span class="row-label">{{ t('settings.autoBrightness') }}</span>
                 <label class="toggle" @click.stop>
                   <input type="checkbox" v-model="autoBrightness" />
                   <span class="toggle-slider"></span>
@@ -675,7 +679,7 @@ const deviceInfo = {
               </div>
             </div>
 
-            <div class="group-header">Brightness</div>
+            <div class="group-header">{{ t('settings.brightness') }}</div>
             <div class="settings-group slider-group">
               <div class="slider-row">
                 <svg class="slider-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -691,7 +695,7 @@ const deviceInfo = {
               </div>
             </div>
 
-            <div class="group-header">Text Size</div>
+            <div class="group-header">{{ t('settings.textSize') }}</div>
             <div class="settings-group">
               <div class="font-size-picker">
                 <button
@@ -711,7 +715,7 @@ const deviceInfo = {
           <div v-else-if="currentPage === 'notifications'" key="notifications" class="page">
             <div class="settings-group">
               <div class="settings-row">
-                <span class="row-label">Allow Notifications</span>
+                <span class="row-label">{{ t('settings.allowNotifications') }}</span>
                 <label class="toggle" @click.stop>
                   <input type="checkbox" v-model="notifications" />
                   <span class="toggle-slider"></span>
@@ -719,22 +723,22 @@ const deviceInfo = {
               </div>
             </div>
             <template v-if="notifications">
-              <div class="group-header">Notification Style</div>
+              <div class="group-header">{{ t('settings.notificationStyle') }}</div>
               <div class="settings-group">
                 <div class="settings-row">
-                  <span class="row-label">Show Previews</span>
-                  <span class="row-value">Always</span>
+                  <span class="row-label">{{ t('settings.showPreviews') }}</span>
+                  <span class="row-value">{{ t('settings.always') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
                 <div class="settings-row">
-                  <span class="row-label">Scheduled Summary</span>
+                  <span class="row-label">{{ t('settings.scheduledSummary') }}</span>
                   <label class="toggle" @click.stop>
                     <input type="checkbox" />
                     <span class="toggle-slider"></span>
                   </label>
                 </div>
               </div>
-              <div class="group-header">App Notifications</div>
+              <div class="group-header">{{ t('settings.appNotifications') }}</div>
               <div class="settings-group">
                 <div class="settings-row">
                   <div class="row-icon-small app-badge">
@@ -742,7 +746,7 @@ const deviceInfo = {
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                   </div>
-                  <span class="row-label">Messages</span>
+                  <span class="row-label">{{ t('settings.messages') }}</span>
                   <label class="toggle" @click.stop>
                     <input type="checkbox" checked />
                     <span class="toggle-slider"></span>
@@ -755,7 +759,7 @@ const deviceInfo = {
                       <path d="M22 4l-10 8L2 4"/>
                     </svg>
                   </div>
-                  <span class="row-label">Mail</span>
+                  <span class="row-label">{{ t('settings.mail') }}</span>
                   <label class="toggle" @click.stop>
                     <input type="checkbox" checked />
                     <span class="toggle-slider"></span>
@@ -769,7 +773,7 @@ const deviceInfo = {
                       <circle cx="12" cy="16" r="1"/>
                     </svg>
                   </div>
-                  <span class="row-label">Calendar</span>
+                  <span class="row-label">{{ t('settings.calendar') }}</span>
                   <label class="toggle" @click.stop>
                     <input type="checkbox" checked />
                     <span class="toggle-slider"></span>
@@ -783,7 +787,7 @@ const deviceInfo = {
                       <path d="M21 15l-5-5L5 21"/>
                     </svg>
                   </div>
-                  <span class="row-label">Photos</span>
+                  <span class="row-label">{{ t('photos.title') }}</span>
                   <label class="toggle" @click.stop>
                     <input type="checkbox" />
                     <span class="toggle-slider"></span>
@@ -797,7 +801,7 @@ const deviceInfo = {
           <div v-else-if="currentPage === 'privacy'" key="privacy" class="page">
             <div class="settings-group">
               <div class="settings-row">
-                <span class="row-label">Location Services</span>
+                <span class="row-label">{{ t('settings.locationServices') }}</span>
                 <label class="toggle" @click.stop>
                   <input type="checkbox" v-model="locationServices" />
                   <span class="toggle-slider"></span>
@@ -805,7 +809,7 @@ const deviceInfo = {
               </div>
             </div>
             <template v-if="locationServices">
-              <div class="group-header">Location Access</div>
+              <div class="group-header">{{ t('settings.locationAccess') }}</div>
               <div class="settings-group">
                 <div class="settings-row">
                   <div class="row-icon-small app-badge">
@@ -814,8 +818,8 @@ const deviceInfo = {
                       <circle cx="12" cy="10" r="3"/>
                     </svg>
                   </div>
-                  <span class="row-label">Maps</span>
-                  <span class="row-value">While Using</span>
+                  <span class="row-label">{{ t('settings.maps') }}</span>
+                  <span class="row-value">{{ t('settings.whileUsing') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
                 <div class="settings-row">
@@ -825,22 +829,22 @@ const deviceInfo = {
                       <circle cx="12" cy="13" r="4"/>
                     </svg>
                   </div>
-                  <span class="row-label">Camera</span>
-                  <span class="row-value">Never</span>
+                  <span class="row-label">{{ t('home.camera') }}</span>
+                  <span class="row-value">{{ t('settings.never') }}</span>
                   <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               </div>
             </template>
-            <div class="group-header">Security</div>
+            <div class="group-header">{{ t('settings.security') }}</div>
             <div class="settings-group">
               <div class="settings-row">
-                <span class="row-label">Face ID</span>
-                <span class="row-value">On</span>
+                <span class="row-label">{{ t('settings.faceId') }}</span>
+                <span class="row-value">{{ t('common.on') }}</span>
                 <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
               </div>
               <div class="settings-row">
-                <span class="row-label">Passcode</span>
-                <span class="row-value">On</span>
+                <span class="row-label">{{ t('settings.passcode') }}</span>
+                <span class="row-value">{{ t('common.on') }}</span>
                 <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
               </div>
             </div>
@@ -850,28 +854,33 @@ const deviceInfo = {
           <div v-else-if="currentPage === 'about'" key="about" class="page">
             <div class="settings-group">
               <div class="settings-row">
-                <span class="row-label">Name</span>
+                <span class="row-label">{{ t('settings.name') }}</span>
                 <span class="row-value">{{ deviceInfo.name }}</span>
               </div>
               <div class="settings-row">
-                <span class="row-label">Model</span>
+                <span class="row-label">{{ t('settings.model') }}</span>
                 <span class="row-value">{{ deviceInfo.model }}</span>
               </div>
               <div class="settings-row">
-                <span class="row-label">OS</span>
+                <span class="row-label">{{ t('settings.os') }}</span>
                 <span class="row-value">{{ deviceInfo.os }}</span>
               </div>
               <div class="settings-row">
-                <span class="row-label">Version</span>
+                <span class="row-label">{{ t('settings.version') }}</span>
                 <span class="row-value">{{ deviceInfo.version }}</span>
               </div>
+              <div class="settings-row" @click="setLocale(locale === 'en' ? 'zh' : 'en')">
+                <span class="row-label">{{ t('settings.language') }}</span>
+                <span class="row-value">{{ t('settings.languageName') }}</span>
+                <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
             </div>
-            <div class="group-header">Storage</div>
+            <div class="group-header">{{ t('settings.storage') }}</div>
             <div class="settings-group">
               <div class="settings-row column">
                 <div class="storage-header">
-                  <span class="row-label">Storage</span>
-                  <span class="row-value">{{ deviceInfo.storageUsed }} of {{ deviceInfo.storage }} used</span>
+                  <span class="row-label">{{ t('settings.storage') }}</span>
+                  <span class="row-value">{{ t('settings.storageUsed', { used: deviceInfo.storageUsed, total: deviceInfo.storage }) }}</span>
                 </div>
                 <div class="storage-bar">
                   <div class="storage-used" :style="{ width: '37%' }"></div>

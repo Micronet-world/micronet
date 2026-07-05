@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { screenRegistry, screenPlugins, getScreenPlugin } from '../registry'
 import type { ScreenId } from '../types'
 
-const ALL_IDS: ScreenId[] = ['lock', 'home', 'settings', 'camera', 'photos', 'maps']
+const ALL_IDS: ScreenId[] = ['lock', 'home', 'settings', 'camera', 'photos', 'maps', 'calendar']
 
 describe('screen registry', () => {
-  it('registers all six screens', () => {
+  it('registers all seven screens', () => {
     for (const id of ALL_IDS) {
       expect(screenRegistry[id]).toBeDefined()
     }
-    expect(screenPlugins).toHaveLength(6)
+    expect(screenPlugins).toHaveLength(7)
   })
 
   it('every plugin carries a component and metadata', () => {

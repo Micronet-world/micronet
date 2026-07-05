@@ -5,6 +5,7 @@ import SettingsScreen from '../components/settings/SettingsScreen.vue'
 import CameraScreen from '../components/camera/CameraScreen.vue'
 import PhotosScreen from '../components/photos/PhotosScreen.vue'
 import MapsScreen from '../components/maps/MapsScreen.vue'
+import CalendarScreen from '../components/calendar/CalendarScreen.vue'
 
 const plugins: ScreenPlugin[] = [
   {
@@ -30,6 +31,7 @@ const plugins: ScreenPlugin[] = [
       'open-camera': { type: 'push', screen: 'camera' },
       'open-photos': { type: 'push', screen: 'photos' },
       'open-maps': { type: 'push', screen: 'maps' },
+      'open-calendar': { type: 'push', screen: 'calendar' },
     },
   },
   {
@@ -72,6 +74,17 @@ const plugins: ScreenPlugin[] = [
     color: '#e8f0fe',
     icon: '🗺️',
     component: MapsScreen,
+    events: {
+      'go-back': { type: 'back' },
+      'go-home': { type: 'home' },
+    },
+  },
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    color: '#faf9f6',
+    icon: '📅',
+    component: CalendarScreen,
     events: {
       'go-back': { type: 'back' },
       'go-home': { type: 'home' },

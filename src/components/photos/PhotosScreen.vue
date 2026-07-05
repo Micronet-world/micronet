@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { usePhotoStore, type Photo } from '../../composables/usePhotoStore'
 import type { PhotoMetadata } from '../../composables/usePhotoStore'
 import { useSwipeGestures } from '../../composables/useSwipeGestures'
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   'go-back': []
@@ -212,15 +215,15 @@ function formatZoom(zoom: number | undefined): string {
 }
 
 function formatFacing(mode: string | undefined): string {
-  if (mode === 'user') return 'Front'
-  if (mode === 'environment') return 'Back'
+  if (mode === 'user') return t('photos.front')
+  if (mode === 'environment') return t('photos.back')
   return '—'
 }
 
 function formatFlash(mode: string | undefined): string {
-  if (mode === 'on') return 'On'
-  if (mode === 'torch') return 'Torch'
-  return 'Off'
+  if (mode === 'on') return t('camera.flashOn')
+  if (mode === 'torch') return t('camera.flashTorch')
+  return t('camera.flashOff')
 }
 
 function formatOrientation(orient: string | undefined): string {
@@ -245,9 +248,9 @@ async function sharePhoto(photo: Photo) {
     // Fallback: copy to clipboard
     try {
       await navigator.clipboard.writeText(photo.data)
-      showToast('Copied to clipboard')
+      showToast(t('photos.copiedToClipboard'))
     } catch {
-      showToast('Unable to share')
+      showToast(t('photos.unableToShare'))
     }
   }
 }
@@ -314,17 +317,17 @@ function handleClose() {
             <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
-        <h1 class="header-title">{{ selectMode ? `${selectedIds.size} selected` : 'Photos' }}</h1>
+        <h1 class="header-title">{{ selectMode ? t('photos.selected', { count: selectedIds.size }) : t('photos.title') }}</h1>
         <button
           v-if="!selectMode"
           class="select-btn"
           @click="toggleSelectMode"
           :disabled="photos.length === 0"
         >
-          Select
+          {{ t('photos.select') }}
         </button>
         <button v-else class="select-btn cancel" @click="toggleSelectMode">
-          Cancel
+          {{ t('common.cancel') }}
         </button>
       </div>
 
@@ -335,21 +338,21 @@ function handleClose() {
           :class="{ active: activeTab === 'all' }"
           @click="activeTab = 'all'"
         >
-          All
+          {{ t('photos.all') }}
         </button>
         <button
           class="tab-btn"
           :class="{ active: activeTab === 'favorites' }"
           @click="activeTab = 'favorites'"
         >
-          Favorites
+          {{ t('photos.favorites') }}
         </button>
       </div>
 
       <!-- Select mode actions -->
       <div v-if="selectMode" class="select-actions">
-        <button class="select-action-btn" @click="selectAll">Select All</button>
-        <button class="select-action-btn" @click="deselectAll">Deselect</button>
+        <button class="select-action-btn" @click="selectAll">{{ t('photos.selectAll') }}</button>
+        <button class="select-action-btn" @click="deselectAll">{{ t('photos.deselect') }}</button>
       </div>
     </div>
 
@@ -362,8 +365,8 @@ function handleClose() {
           <path d="M8 52l18-18 12 12 10-10 24 24" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
-      <h2 class="empty-title">No Photos Yet</h2>
-      <p class="empty-desc">Photos you take with the camera will appear here.</p>
+      <h2 class="empty-title">{{ t('photos.noPhotosYet') }}</h2>
+      <p class="empty-desc">{{ t('photos.noPhotosDesc') }}</p>
     </div>
 
     <!-- Empty Filter State -->
@@ -373,8 +376,8 @@ function handleClose() {
           <path d="M40 16l5.5 11.2 12.4 1.8-9 8.8 2.1 12.3L40 44.8l-11 5.3 2.1-12.3-9-8.8 12.4-1.8z" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
-      <h2 class="empty-title">No Favorites</h2>
-      <p class="empty-desc">Tap the heart icon on a photo to add it to your favorites.</p>
+      <h2 class="empty-title">{{ t('photos.noFavorites') }}</h2>
+      <p class="empty-desc">{{ t('photos.noFavoritesDesc') }}</p>
     </div>
 
     <!-- Photo Grid -->
@@ -425,14 +428,14 @@ function handleClose() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          <span>Favorite</span>
+          <span>{{ t('common.favorite') }}</span>
         </button>
         <button class="bar-action danger" @click="deleteSelected" aria-label="Delete">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <polyline points="3 6 5 6 21 6" stroke-linecap="round" />
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke-linecap="round" />
           </svg>
-          <span>Delete</span>
+          <span>{{ t('common.delete') }}</span>
         </button>
       </div>
     </Transition>
@@ -525,96 +528,96 @@ function handleClose() {
         <Transition name="slide-up-panel">
           <div v-if="showInfo" class="info-panel" @click.stop>
             <div class="info-handle"></div>
-            <h3 class="info-title">{{ viewerPhoto.type === 'video' ? 'Video' : 'Photo' }} Details</h3>
+            <h3 class="info-title">{{ viewerPhoto.type === 'video' ? t('photos.videoDetails') : t('photos.photoDetails') }}</h3>
 
             <div class="info-row">
-              <span class="info-label">Type</span>
+              <span class="info-label">{{ t('photos.type') }}</span>
               <span class="info-value">{{ viewerPhoto.type === 'photo' ? 'Photo' : 'Video' }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Captured</span>
+              <span class="info-label">{{ t('photos.captured') }}</span>
               <span class="info-value">{{ formatTimestamp(viewerPhoto.timestamp) }}</span>
             </div>
             <div v-if="viewerPhoto.type === 'photo'" class="info-row">
-              <span class="info-label">Size</span>
+              <span class="info-label">{{ t('photos.size') }}</span>
               <span class="info-value">{{ estimateSize(viewerPhoto.data) }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">Favorite</span>
-              <span class="info-value">{{ viewerPhoto.favorite ? 'Yes' : 'No' }}</span>
+              <span class="info-label">{{ t('photos.favorite') }}</span>
+              <span class="info-value">{{ viewerPhoto.favorite ? t('common.yes') : t('common.no') }}</span>
             </div>
 
             <template v-if="viewerPhoto.metadata">
-              <div class="info-section">Camera</div>
+              <div class="info-section">{{ t('photos.cameraSection') }}</div>
 
               <div v-if="viewerPhoto.metadata.width && viewerPhoto.metadata.height" class="info-row">
-                <span class="info-label">Resolution</span>
+                <span class="info-label">{{ t('photos.resolution') }}</span>
                 <span class="info-value">{{ viewerPhoto.metadata.width }} × {{ viewerPhoto.metadata.height }}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Camera</span>
+                <span class="info-label">{{ t('photos.camera') }}</span>
                 <span class="info-value">{{ formatFacing(viewerPhoto.metadata.facingMode) }}</span>
               </div>
               <div v-if="viewerPhoto.metadata.filter && viewerPhoto.metadata.filter !== 'None'" class="info-row">
-                <span class="info-label">Filter</span>
+                <span class="info-label">{{ t('photos.filter') }}</span>
                 <span class="info-value">{{ viewerPhoto.metadata.filter }}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Zoom</span>
+                <span class="info-label">{{ t('photos.zoom') }}</span>
                 <span class="info-value">{{ formatZoom(viewerPhoto.metadata.zoom) }}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Flash</span>
+                <span class="info-label">{{ t('photos.flash') }}</span>
                 <span class="info-value">{{ formatFlash(viewerPhoto.metadata.flashMode) }}</span>
               </div>
               <div v-if="viewerPhoto.metadata.captureMethod" class="info-row">
-                <span class="info-label">Capture</span>
-                <span class="info-value">{{ viewerPhoto.metadata.captureMethod === 'imageCapture' ? 'High Quality' : 'Standard' }}</span>
+                <span class="info-label">{{ t('photos.capture') }}</span>
+                <span class="info-value">{{ viewerPhoto.metadata.captureMethod === 'imageCapture' ? t('camera.highQuality') : t('camera.standard') }}</span>
               </div>
               <div v-if="viewerPhoto.metadata.orientation" class="info-row">
-                <span class="info-label">Orientation</span>
+                <span class="info-label">{{ t('photos.orientation') }}</span>
                 <span class="info-value">{{ formatOrientation(viewerPhoto.metadata.orientation) }}</span>
               </div>
 
               <template v-if="viewerPhoto.type === 'video'">
-                <div class="info-section">Video</div>
+                <div class="info-section">{{ t('photos.videoSection') }}</div>
                 <div v-if="viewerPhoto.metadata.duration != null" class="info-row">
-                  <span class="info-label">Duration</span>
+                  <span class="info-label">{{ t('photos.duration') }}</span>
                   <span class="info-value">{{ formatDuration(viewerPhoto.metadata.duration) }}</span>
                 </div>
                 <div v-if="viewerPhoto.metadata.mimeType" class="info-row">
-                  <span class="info-label">Codec</span>
+                  <span class="info-label">{{ t('photos.codec') }}</span>
                   <span class="info-value">{{ viewerPhoto.metadata.mimeType }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Video Bitrate</span>
+                  <span class="info-label">{{ t('photos.videoBitrate') }}</span>
                   <span class="info-value">{{ formatBitrate(viewerPhoto.metadata.videoBitsPerSecond) }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Audio Bitrate</span>
+                  <span class="info-label">{{ t('photos.audioBitrate') }}</span>
                   <span class="info-value">{{ formatBitrate(viewerPhoto.metadata.audioBitsPerSecond) }}</span>
                 </div>
               </template>
 
               <template v-if="viewerPhoto.metadata.location">
-                <div class="info-section">Location</div>
+                <div class="info-section">{{ t('photos.locationSection') }}</div>
                 <div class="info-row">
-                  <span class="info-label">Coordinates</span>
+                  <span class="info-label">{{ t('photos.coordinates') }}</span>
                   <span class="info-value">{{ formatCoords(viewerPhoto.metadata.location) }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Altitude</span>
+                  <span class="info-label">{{ t('photos.altitude') }}</span>
                   <span class="info-value">{{ formatAltitude(viewerPhoto.metadata.location.altitude) }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-label">Accuracy</span>
+                  <span class="info-label">{{ t('photos.accuracy') }}</span>
                   <span class="info-value">{{ formatAccuracy(viewerPhoto.metadata.location.accuracy) }}</span>
                 </div>
               </template>
 
-              <div class="info-section">Device</div>
+              <div class="info-section">{{ t('photos.deviceSection') }}</div>
               <div class="info-row">
-                <span class="info-label">Timezone</span>
+                <span class="info-label">{{ t('photos.timezone') }}</span>
                 <span class="info-value">UTC{{ (viewerPhoto.metadata.timezone ?? 0) > 0 ? '+' : '' }}{{ -(viewerPhoto.metadata.timezone ?? 0) / 60 }}</span>
               </div>
             </template>

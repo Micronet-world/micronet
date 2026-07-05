@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const hours = ref('')
 const minutes = ref('')
 const date = ref('')
 let timer: ReturnType<typeof setInterval>
 
-const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-
 const updateTime = () => {
   const now = new Date()
   hours.value = now.getHours().toString().padStart(2, '0')
   minutes.value = now.getMinutes().toString().padStart(2, '0')
-  date.value = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`
+  const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const
+  const monthKeys = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'] as const
+  date.value = `${t(`time.days.${dayKeys[now.getDay()]}`)}, ${t(`time.months.${monthKeys[now.getMonth()]}`)} ${now.getDate()}`
 }
 
 onMounted(() => {

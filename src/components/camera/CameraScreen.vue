@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { usePhotoStore } from '../../composables/usePhotoStore'
 import type { PhotoMetadata } from '../../composables/usePhotoStore'
@@ -9,6 +10,8 @@ const emit = defineEmits<{
   'go-back': []
   'go-home': []
 }>()
+
+const { t } = useI18n()
 
 const { targetRef, isDragging } =
   useSwipeGestures({
@@ -86,6 +89,17 @@ const filters: FilterOption[] = [
 ]
 const activeFilterIndex = ref(0)
 
+const filterNames = computed(() => [
+  t('cameraFilters.none'),
+  t('cameraFilters.vivid'),
+  t('cameraFilters.warm'),
+  t('cameraFilters.cool'),
+  t('cameraFilters.mono'),
+  t('cameraFilters.noir'),
+  t('cameraFilters.fade'),
+  t('cameraFilters.dramatic'),
+])
+
 // ─── Focus ──────────────────────────────────────────────────────
 const focusPoint = reactive({ x: 0, y: 0, visible: false })
 let focusTimeout: ReturnType<typeof setTimeout> | null = null
@@ -155,10 +169,10 @@ async function startCamera() {
     cameraReady.value = true
   } catch (err: any) {
     cameraError.value = err.name === 'NotAllowedError'
-      ? 'Camera access denied. Please allow camera permissions.'
+      ? t('camera.cameraAccessDenied')
       : err.name === 'NotFoundError'
-        ? 'No camera found on this device.'
-        : `Camera error: ${err.message}`
+        ? t('camera.noCameraFound')
+        : t('camera.cameraError', { message: err.message })
   }
 }
 
@@ -775,9 +789,9 @@ onUnmounted(() => {
           <!-- Flash dropdown -->
           <Transition name="dropdown">
             <div v-if="flashMenuOpen" class="dropdown-menu">
-              <button :class="{ selected: flashMode === 'off' }" @click.stop="setFlashMode('off')">Off</button>
-              <button :class="{ selected: flashMode === 'on' }" @click.stop="setFlashMode('on')">On</button>
-              <button :class="{ selected: flashMode === 'torch' }" @click.stop="setFlashMode('torch')">Torch</button>
+              <button :class="{ selected: flashMode === 'off' }" @click.stop="setFlashMode('off')">{{ t('camera.flashOff') }}</button>
+              <button :class="{ selected: flashMode === 'on' }" @click.stop="setFlashMode('on')">{{ t('camera.flashOn') }}</button>
+              <button :class="{ selected: flashMode === 'torch' }" @click.stop="setFlashMode('torch')">{{ t('camera.flashTorch') }}</button>
             </div>
           </Transition>
         </div>
@@ -800,9 +814,9 @@ onUnmounted(() => {
           </button>
           <Transition name="dropdown">
             <div v-if="timerMenuOpen" class="dropdown-menu">
-              <button :class="{ selected: timerDuration === 0 }" @click.stop="setTimer(0)">Off</button>
-              <button :class="{ selected: timerDuration === 3 }" @click.stop="setTimer(3)">3s</button>
-              <button :class="{ selected: timerDuration === 10 }" @click.stop="setTimer(10)">10s</button>
+              <button :class="{ selected: timerDuration === 0 }" @click.stop="setTimer(0)">{{ t('camera.timerOff') }}</button>
+              <button :class="{ selected: timerDuration === 3 }" @click.stop="setTimer(3)">{{ t('camera.timer3s') }}</button>
+              <button :class="{ selected: timerDuration === 10 }" @click.stop="setTimer(10)">{{ t('camera.timer10s') }}</button>
             </div>
           </Transition>
         </div>
@@ -846,14 +860,14 @@ onUnmounted(() => {
         :class="{ active: captureMode === 'photo' }"
         @click.stop="captureMode = 'photo'"
       >
-        PHOTO
+        {{ t('camera.photo') }}
       </button>
       <button
         class="mode-btn"
         :class="{ active: captureMode === 'video' }"
         @click.stop="captureMode = 'video'"
       >
-        VIDEO
+        {{ t('camera.video') }}
       </button>
     </div>
 
@@ -866,7 +880,7 @@ onUnmounted(() => {
         :class="{ active: activeFilterIndex === i }"
         @click.stop="activeFilterIndex = i"
       >
-        {{ filter.name }}
+        {{ filterNames[i] }}
       </button>
     </div>
 

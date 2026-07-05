@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import LockScreen from '../LockScreen.vue'
+import { i18n } from '../../test-setup'
 
 describe('LockScreen', () => {
   beforeEach(() => {
@@ -13,7 +14,7 @@ describe('LockScreen', () => {
   })
 
   it('renders child components', async () => {
-    const wrapper = mount(LockScreen)
+    const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
     await nextTick()
     expect(wrapper.find('.lock-screen').exists()).toBe(true)
     expect(wrapper.find('.content').exists()).toBe(true)
@@ -23,7 +24,7 @@ describe('LockScreen', () => {
 
   describe('mouse swipe gesture', () => {
     it('does NOT emit unlock on short swipe', async () => {
-      const wrapper = mount(LockScreen)
+      const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.lock-screen')
 
       await screen.trigger('mousedown', { clientY: 300 })
@@ -34,7 +35,7 @@ describe('LockScreen', () => {
     })
 
     it('emits unlock on sufficient upward swipe (> 80px)', async () => {
-      const wrapper = mount(LockScreen)
+      const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.lock-screen')
 
       await screen.trigger('mousedown', { clientY: 300 })
@@ -45,7 +46,7 @@ describe('LockScreen', () => {
     })
 
     it('does NOT emit unlock on downward swipe', async () => {
-      const wrapper = mount(LockScreen)
+      const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.lock-screen')
 
       await screen.trigger('mousedown', { clientY: 200 })
@@ -56,7 +57,7 @@ describe('LockScreen', () => {
     })
 
     it('resets dragProgress after mouseup', async () => {
-      const wrapper = mount(LockScreen)
+      const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.lock-screen')
 
       await screen.trigger('mousedown', { clientY: 300 })
@@ -77,7 +78,7 @@ describe('LockScreen', () => {
 
   describe('touch swipe gesture', () => {
     it('emits unlock on sufficient upward swipe via touch', async () => {
-      const wrapper = mount(LockScreen)
+      const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.lock-screen')
 
       const touchStart = new TouchEvent('touchstart', {
@@ -96,7 +97,7 @@ describe('LockScreen', () => {
     })
 
     it('does NOT emit unlock on short touch swipe', async () => {
-      const wrapper = mount(LockScreen)
+      const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.lock-screen')
 
       const touchStart = new TouchEvent('touchstart', {
@@ -116,7 +117,7 @@ describe('LockScreen', () => {
   })
 
   it('applies dragging class during drag', async () => {
-    const wrapper = mount(LockScreen)
+    const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
     const screen = wrapper.find('.lock-screen')
 
     await screen.trigger('mousedown', { clientY: 300 })
@@ -128,7 +129,7 @@ describe('LockScreen', () => {
   })
 
   it('content style reflects dragProgress', async () => {
-    const wrapper = mount(LockScreen)
+    const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
     const screen = wrapper.find('.lock-screen')
     const content = wrapper.find('.content')
 
@@ -143,7 +144,7 @@ describe('LockScreen', () => {
 
   it('cleans up global mouse listeners on unmount', () => {
     const removeSpy = vi.spyOn(window, 'removeEventListener')
-    const wrapper = mount(LockScreen)
+    const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
     wrapper.unmount()
 
     const calls = removeSpy.mock.calls.map(c => c[0])
@@ -152,7 +153,7 @@ describe('LockScreen', () => {
   })
 
   it('ignores mousemove when not dragging', async () => {
-    const wrapper = mount(LockScreen)
+    const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
     window.dispatchEvent(new MouseEvent('mousemove', { clientY: 100 }))
 
     const content = wrapper.find('.content')
@@ -161,7 +162,7 @@ describe('LockScreen', () => {
   })
 
   it('ignores mouseup when not dragging', async () => {
-    const wrapper = mount(LockScreen)
+    const wrapper = mount(LockScreen, { global: { plugins: [i18n] } })
     window.dispatchEvent(new MouseEvent('mouseup'))
     expect(wrapper.emitted('unlock')).toBeUndefined()
   })

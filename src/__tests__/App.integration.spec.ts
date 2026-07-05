@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import App from '../App.vue'
+import { i18n } from '../test-setup'
 
 describe('App Integration', () => {
   beforeEach(() => {
@@ -36,13 +37,13 @@ describe('App Integration', () => {
   }
 
   it('starts on lock screen', () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
     expect(wrapper.find('.lock-screen').exists()).toBe(true)
     expect(wrapper.find('.home-screen').exists()).toBe(false)
   })
 
   it('unlocks to home screen on swipe', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
     await swipeUp(wrapper, '.lock-screen')
 
     expect(wrapper.find('.lock-screen').exists()).toBe(false)
@@ -50,7 +51,7 @@ describe('App Integration', () => {
   })
 
   it('navigates to settings from home screen', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
     await swipeUp(wrapper, '.lock-screen')
 
     await findAppIcon(wrapper, 'Settings')!.trigger('click')
@@ -61,7 +62,7 @@ describe('App Integration', () => {
   })
 
   it('swiping up on home does nothing (no app switcher)', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
     await swipeUp(wrapper, '.lock-screen')
 
     // A plain swipe up on the home screen has no effect
@@ -72,7 +73,7 @@ describe('App Integration', () => {
   })
 
   it('swiping down from settings goes to lock screen', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
 
     await swipeUp(wrapper, '.lock-screen')
     await findAppIcon(wrapper, 'Settings')!.trigger('click')
@@ -84,7 +85,7 @@ describe('App Integration', () => {
   })
 
   it('home bar swipe up navigates to lock screen', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
     await swipeUp(wrapper, '.lock-screen')
 
     const bar = wrapper.find('.home-bar-area')
@@ -101,7 +102,7 @@ describe('App Integration', () => {
   })
 
   it('does not navigate on short swipe from lock screen', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
     const lockScreen = wrapper.find('.lock-screen')
 
     await lockScreen.trigger('mousedown', { clientY: 300 })
@@ -113,7 +114,7 @@ describe('App Integration', () => {
   })
 
   it('swiping up on camera opened from lock returns to home', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
 
     // Open the camera directly from the lock screen (stack: lock, camera)
     await wrapper.find('[aria-label="Camera"]').trigger('click')

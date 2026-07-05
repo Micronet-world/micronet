@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import HomeScreen from '../HomeScreen.vue'
+import { i18n } from '../../../test-setup'
 
 describe('HomeScreen', () => {
   beforeEach(() => {
@@ -12,13 +13,13 @@ describe('HomeScreen', () => {
   })
 
   it('renders StatusBar and app grid', () => {
-    const wrapper = mount(HomeScreen)
+    const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
     expect(wrapper.find('.home-screen').exists()).toBe(true)
     expect(wrapper.find('.app-grid').exists()).toBe(true)
   })
 
   it('renders Settings app icon', () => {
-    const wrapper = mount(HomeScreen)
+    const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
     const allIcons = wrapper.findAll('.app-icon')
     const settingsBtn = allIcons.find(el => el.find('.app-name').text() === 'Settings')
     expect(settingsBtn).toBeDefined()
@@ -26,13 +27,13 @@ describe('HomeScreen', () => {
   })
 
   it('renders home bar', () => {
-    const wrapper = mount(HomeScreen)
+    const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
     expect(wrapper.find('.home-bar').exists()).toBe(true)
     expect(wrapper.find('.home-bar-area').exists()).toBe(true)
   })
 
   it('emits open-settings when settings button clicked', async () => {
-    const wrapper = mount(HomeScreen)
+    const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
     const allIcons = wrapper.findAll('.app-icon')
     const settingsBtn = allIcons.find(el => el.find('.app-name').text() === 'Settings')
     await settingsBtn!.trigger('click')
@@ -41,7 +42,7 @@ describe('HomeScreen', () => {
 
   describe('screen swipe gesture (mouse)', () => {
     it('emits go-lock on downward swipe > 80px', async () => {
-      const wrapper = mount(HomeScreen)
+      const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.home-screen')
 
       await screen.trigger('mousedown', { clientY: 200 })
@@ -52,7 +53,7 @@ describe('HomeScreen', () => {
     })
 
     it('does NOT emit go-lock on upward swipe', async () => {
-      const wrapper = mount(HomeScreen)
+      const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.home-screen')
 
       await screen.trigger('mousedown', { clientY: 300 })
@@ -63,7 +64,7 @@ describe('HomeScreen', () => {
     })
 
     it('does NOT emit on short swipe', async () => {
-      const wrapper = mount(HomeScreen)
+      const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.home-screen')
 
       await screen.trigger('mousedown', { clientY: 300 })
@@ -76,7 +77,7 @@ describe('HomeScreen', () => {
 
   describe('screen swipe gesture (touch)', () => {
     it('emits go-lock on downward touch swipe', () => {
-      const wrapper = mount(HomeScreen)
+      const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.home-screen')
 
       screen.element.dispatchEvent(new TouchEvent('touchstart', {
@@ -91,7 +92,7 @@ describe('HomeScreen', () => {
     })
 
     it('does NOT emit go-lock on upward touch swipe', () => {
-      const wrapper = mount(HomeScreen)
+      const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.home-screen')
 
       screen.element.dispatchEvent(new TouchEvent('touchstart', {
@@ -108,7 +109,7 @@ describe('HomeScreen', () => {
 
   describe('home bar swipe gesture', () => {
     it('emits go-lock on home bar swipe up > 40px (touch)', () => {
-      const wrapper = mount(HomeScreen)
+      const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
       const bar = wrapper.find('.home-bar-area')
 
       bar.element.dispatchEvent(new TouchEvent('touchstart', {
@@ -123,7 +124,7 @@ describe('HomeScreen', () => {
     })
 
     it('does NOT emit on short home bar swipe', () => {
-      const wrapper = mount(HomeScreen)
+      const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
       const bar = wrapper.find('.home-bar-area')
 
       bar.element.dispatchEvent(new TouchEvent('touchstart', {
@@ -139,7 +140,7 @@ describe('HomeScreen', () => {
   })
 
   it('applies dragging class during drag', async () => {
-    const wrapper = mount(HomeScreen)
+    const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
     const screen = wrapper.find('.home-screen')
 
     await screen.trigger('mousedown', { clientY: 300 })
@@ -152,7 +153,7 @@ describe('HomeScreen', () => {
 
   it('cleans up global mouse listeners on unmount', () => {
     const removeSpy = vi.spyOn(window, 'removeEventListener')
-    const wrapper = mount(HomeScreen)
+    const wrapper = mount(HomeScreen, { global: { plugins: [i18n] } })
     wrapper.unmount()
 
     const calls = removeSpy.mock.calls.map(c => c[0])

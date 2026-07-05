@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import App from '../App.vue'
+import { i18n } from '../test-setup'
 
 describe('Touch-through-App repro', () => {
   beforeEach(() => {
@@ -12,7 +13,7 @@ describe('Touch-through-App repro', () => {
   })
 
   it('touch swipe up on lock screen navigates to home (through full App)', async () => {
-    const wrapper = mount(App)
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
     const lock = wrapper.find('.lock-screen')
     expect(lock.exists()).toBe(true)
 
