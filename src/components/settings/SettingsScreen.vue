@@ -29,6 +29,7 @@ let navigateBackFn: () => void
 const { targetRef, dragProgress, swipeDirection, isDragging } =
   useSwipeGestures({
     onSwipeDown: () => emit('go-lock'),
+    onSwipeUp: () => emit('go-lock'),
     onSwipeRight: () => {
       if (navigateBackFn) navigateBackFn()
     },
@@ -281,12 +282,6 @@ const deviceInfo = {
 
       <!-- Header -->
       <div class="settings-header">
-        <button v-if="currentPage !== 'main'" class="back-btn" @click="navigateBack">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-          <span>{{ t('common.back') }}</span>
-        </button>
         <div class="header-title">
           <h1 v-if="currentPage === 'main'">{{ t('settings.title') }}</h1>
           <h1 v-else-if="currentPage === 'wifi'">{{ t('settings.wifi') }}</h1>
@@ -1003,38 +998,14 @@ const deviceInfo = {
 .settings-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 8px 16px 12px;
-  gap: 4px;
   min-height: 44px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   background: rgba(250, 249, 246, 0.85);
   position: relative;
   z-index: 10;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  color: #007aff;
-  font-size: 16px;
-  font-weight: 400;
-  padding: 4px 0;
-  cursor: pointer;
-  background: none;
-  border: none;
-  flex-shrink: 0;
-  transition: opacity 0.15s ease;
-}
-
-.back-btn:active {
-  opacity: 0.5;
-}
-
-.back-btn svg {
-  width: 20px;
-  height: 20px;
 }
 
 .header-title h1 {
