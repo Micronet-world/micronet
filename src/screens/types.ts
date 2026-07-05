@@ -15,11 +15,8 @@ export type NavIntent =
   | { type: 'home' }
   | { type: 'back' }
   | { type: 'navigate'; screen: ScreenId }
-  | { type: 'show-cards' }
-  | { type: 'collapse' }
 
 export interface ScreenPlugin extends ScreenMeta {
   component: Component
   events: Record<string, NavIntent>
-  backgroundCard?: boolean
 }

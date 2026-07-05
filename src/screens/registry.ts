@@ -1,4 +1,4 @@
-import type { ScreenId, ScreenMeta, ScreenPlugin } from './types'
+import type { ScreenId, ScreenPlugin } from './types'
 import LockScreen from '../components/LockScreen.vue'
 import HomeScreen from '../components/home/HomeScreen.vue'
 import SettingsScreen from '../components/settings/SettingsScreen.vue'
@@ -12,7 +12,6 @@ const plugins: ScreenPlugin[] = [
     color: '#faf9f6',
     icon: '🔒',
     component: LockScreen,
-    backgroundCard: false,
     events: {
       unlock: { type: 'push', screen: 'home' },
       'open-camera': { type: 'push', screen: 'camera' },
@@ -26,7 +25,6 @@ const plugins: ScreenPlugin[] = [
     component: HomeScreen,
     events: {
       'go-lock': { type: 'lock' },
-      'show-cards': { type: 'show-cards' },
       'open-settings': { type: 'push', screen: 'settings' },
       'open-camera': { type: 'push', screen: 'camera' },
       'open-photos': { type: 'push', screen: 'photos' },
@@ -42,7 +40,6 @@ const plugins: ScreenPlugin[] = [
       'go-lock': { type: 'lock' },
       'go-back': { type: 'back' },
       'go-home': { type: 'home' },
-      'show-cards': { type: 'show-cards' },
     },
   },
   {
@@ -77,13 +74,4 @@ export const screenPlugins = plugins
 
 export function getScreenPlugin(id: ScreenId): ScreenPlugin {
   return screenRegistry[id]
-}
-
-export function getScreenMeta(id: ScreenId): ScreenMeta {
-  const plugin = screenRegistry[id]
-  return { id: plugin.id, label: plugin.label, color: plugin.color, icon: plugin.icon }
-}
-
-export function isBackgroundCard(id: ScreenId): boolean {
-  return screenRegistry[id].backgroundCard !== false
 }

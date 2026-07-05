@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import CardStackManager from './components/CardStackManager.vue'
 import { useScreenStack } from './composables/useScreenStack'
 import { getScreenPlugin } from './screens/registry'
-import type { ScreenId } from './screens/types'
 
-const { screenStack, currentScreen, cardsExpanded, dispatch } = useScreenStack()
+const { currentScreen, dispatch } = useScreenStack()
 
 const currentPlugin = computed(() => getScreenPlugin(currentScreen.value))
 
@@ -18,24 +16,13 @@ const screenListeners = computed(() => {
   }
   return listeners
 })
-
-const onNavigateTo = (screen: ScreenId) => dispatch({ type: 'navigate', screen })
-const onCollapse = () => dispatch({ type: 'collapse' })
 </script>
 
 <template>
   <div class="app-container">
-    <CardStackManager
-      :screen-stack="screenStack"
-      :current-screen="currentScreen"
-      :expanded="cardsExpanded"
-      @navigate-to="onNavigateTo"
-      @collapse="onCollapse"
-    >
-      <Transition name="slide-up">
-        <component :is="currentPlugin.component" :key="currentScreen" v-on="screenListeners" />
-      </Transition>
-    </CardStackManager>
+    <Transition name="slide-up">
+      <component :is="currentPlugin.component" :key="currentScreen" v-on="screenListeners" />
+    </Transition>
   </div>
 </template>
 

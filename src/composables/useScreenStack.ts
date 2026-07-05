@@ -4,20 +4,16 @@ import type { ScreenId, NavIntent } from '../screens/types'
 export function useScreenStack() {
   const screenStack = ref<ScreenId[]>(['lock'])
   const currentScreen = computed(() => screenStack.value[screenStack.value.length - 1])
-  const cardsExpanded = ref(false)
 
   function dispatch(intent: NavIntent) {
     switch (intent.type) {
       case 'push':
-        cardsExpanded.value = false
         screenStack.value = [...screenStack.value, intent.screen]
         break
       case 'lock':
-        cardsExpanded.value = false
         screenStack.value = ['lock']
         break
       case 'home': {
-        cardsExpanded.value = false
         // Navigate to the home screen wherever it sits in the stack. Home is
         // not always at index 1 — e.g. the camera can be pushed straight from
         // the lock screen (stack ['lock', 'camera']), so we can't rely on a
@@ -34,7 +30,6 @@ export function useScreenStack() {
         break
       }
       case 'back': {
-        cardsExpanded.value = false
         // Pop the top screen, but never pop home (or below). The previous
         // `length > 2` guard assumed home was always at index 1, which broke
         // stacks like ['lock', 'camera'] (camera opened from lock) — leaving
@@ -47,21 +42,14 @@ export function useScreenStack() {
         break
       }
       case 'navigate': {
-        cardsExpanded.value = false
         const idx = screenStack.value.indexOf(intent.screen)
         if (idx >= 0) {
           screenStack.value = screenStack.value.slice(0, idx + 1)
         }
         break
       }
-      case 'show-cards':
-        cardsExpanded.value = true
-        break
-      case 'collapse':
-        cardsExpanded.value = false
-        break
     }
   }
 
-  return { screenStack, currentScreen, cardsExpanded, dispatch }
+  return { screenStack, currentScreen, dispatch }
 }

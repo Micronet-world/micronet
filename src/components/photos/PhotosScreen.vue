@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { usePhotoStore, type Photo } from '../../composables/usePhotoStore'
+import type { PhotoMetadata } from '../../composables/usePhotoStore'
 import { useSwipeGestures } from '../../composables/useSwipeGestures'
 
 const emit = defineEmits<{
@@ -172,6 +173,59 @@ function estimateSize(data: string): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
+
+function formatCoords(loc: NonNullable<PhotoMetadata['location']>): string {
+  const lat = Math.abs(loc.latitude).toFixed(6)
+  const lon = Math.abs(loc.longitude).toFixed(6)
+  const latDir = loc.latitude >= 0 ? 'N' : 'S'
+  const lonDir = loc.longitude >= 0 ? 'E' : 'W'
+  return `${lat}° ${latDir}, ${lon}° ${lonDir}`
+}
+
+function formatAltitude(alt: number | null | undefined): string {
+  if (alt == null) return '—'
+  return `${alt.toFixed(1)} m`
+}
+
+function formatAccuracy(acc: number | undefined): string {
+  if (acc == null) return '—'
+  return `±${acc.toFixed(0)} m`
+}
+
+function formatBitrate(bps: number | undefined): string {
+  if (!bps) return '—'
+  if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(1)} Mbps`
+  if (bps >= 1_000) return `${(bps / 1_000).toFixed(0)} kbps`
+  return `${bps} bps`
+}
+
+function formatZoom(zoom: number | undefined): string {
+  if (!zoom || zoom <= 1) return '1.0×'
+  return `${zoom.toFixed(1)}×`
+}
+
+function formatFacing(mode: string | undefined): string {
+  if (mode === 'user') return 'Front'
+  if (mode === 'environment') return 'Back'
+  return '—'
+}
+
+function formatFlash(mode: string | undefined): string {
+  if (mode === 'on') return 'On'
+  if (mode === 'torch') return 'Torch'
+  return 'Off'
+}
+
+function formatOrientation(orient: string | undefined): string {
+  if (!orient) return '—'
+  return orient.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 // ─── Actions ────────────────────────────────────────────────────
@@ -471,7 +525,8 @@ function handleClose() {
         <Transition name="slide-up-panel">
           <div v-if="showInfo" class="info-panel" @click.stop>
             <div class="info-handle"></div>
-            <h3 class="info-title">Photo Details</h3>
+            <h3 class="info-title">{{ viewerPhoto.type === 'video' ? 'Video' : 'Photo' }} Details</h3>
+
             <div class="info-row">
               <span class="info-label">Type</span>
               <span class="info-value">{{ viewerPhoto.type === 'photo' ? 'Photo' : 'Video' }}</span>
@@ -488,6 +543,81 @@ function handleClose() {
               <span class="info-label">Favorite</span>
               <span class="info-value">{{ viewerPhoto.favorite ? 'Yes' : 'No' }}</span>
             </div>
+
+            <template v-if="viewerPhoto.metadata">
+              <div class="info-section">Camera</div>
+
+              <div v-if="viewerPhoto.metadata.width && viewerPhoto.metadata.height" class="info-row">
+                <span class="info-label">Resolution</span>
+                <span class="info-value">{{ viewerPhoto.metadata.width }} × {{ viewerPhoto.metadata.height }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Camera</span>
+                <span class="info-value">{{ formatFacing(viewerPhoto.metadata.facingMode) }}</span>
+              </div>
+              <div v-if="viewerPhoto.metadata.filter && viewerPhoto.metadata.filter !== 'None'" class="info-row">
+                <span class="info-label">Filter</span>
+                <span class="info-value">{{ viewerPhoto.metadata.filter }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Zoom</span>
+                <span class="info-value">{{ formatZoom(viewerPhoto.metadata.zoom) }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Flash</span>
+                <span class="info-value">{{ formatFlash(viewerPhoto.metadata.flashMode) }}</span>
+              </div>
+              <div v-if="viewerPhoto.metadata.captureMethod" class="info-row">
+                <span class="info-label">Capture</span>
+                <span class="info-value">{{ viewerPhoto.metadata.captureMethod === 'imageCapture' ? 'High Quality' : 'Standard' }}</span>
+              </div>
+              <div v-if="viewerPhoto.metadata.orientation" class="info-row">
+                <span class="info-label">Orientation</span>
+                <span class="info-value">{{ formatOrientation(viewerPhoto.metadata.orientation) }}</span>
+              </div>
+
+              <template v-if="viewerPhoto.type === 'video'">
+                <div class="info-section">Video</div>
+                <div v-if="viewerPhoto.metadata.duration != null" class="info-row">
+                  <span class="info-label">Duration</span>
+                  <span class="info-value">{{ formatDuration(viewerPhoto.metadata.duration) }}</span>
+                </div>
+                <div v-if="viewerPhoto.metadata.mimeType" class="info-row">
+                  <span class="info-label">Codec</span>
+                  <span class="info-value">{{ viewerPhoto.metadata.mimeType }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Video Bitrate</span>
+                  <span class="info-value">{{ formatBitrate(viewerPhoto.metadata.videoBitsPerSecond) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Audio Bitrate</span>
+                  <span class="info-value">{{ formatBitrate(viewerPhoto.metadata.audioBitsPerSecond) }}</span>
+                </div>
+              </template>
+
+              <template v-if="viewerPhoto.metadata.location">
+                <div class="info-section">Location</div>
+                <div class="info-row">
+                  <span class="info-label">Coordinates</span>
+                  <span class="info-value">{{ formatCoords(viewerPhoto.metadata.location) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Altitude</span>
+                  <span class="info-value">{{ formatAltitude(viewerPhoto.metadata.location.altitude) }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Accuracy</span>
+                  <span class="info-value">{{ formatAccuracy(viewerPhoto.metadata.location.accuracy) }}</span>
+                </div>
+              </template>
+
+              <div class="info-section">Device</div>
+              <div class="info-row">
+                <span class="info-label">Timezone</span>
+                <span class="info-value">UTC{{ (viewerPhoto.metadata.timezone ?? 0) > 0 ? '+' : '' }}{{ -(viewerPhoto.metadata.timezone ?? 0) / 60 }}</span>
+              </div>
+            </template>
           </div>
         </Transition>
       </div>
@@ -962,6 +1092,17 @@ function handleClose() {
   font-weight: 600;
   color: #fff;
   margin-bottom: 16px;
+}
+
+.info-section {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 14px 0 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 2px;
 }
 
 .info-row {

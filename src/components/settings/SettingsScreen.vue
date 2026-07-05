@@ -7,7 +7,6 @@ const emit = defineEmits<{
   'go-lock': []
   'go-back': []
   'go-home': []
-  'show-cards': []
 }>()
 
 // --- Swipe gesture ---
@@ -18,25 +17,17 @@ const canSwipeDown = () => {
   return !el || el.scrollTop <= 0
 }
 
-const canSwipeUp = () => {
-  const el = settingsBody.value
-  return !el || el.scrollTop + el.clientHeight >= el.scrollHeight - 1
-}
-
 // pageHistory is declared below; forward-declare navigateBack
 let navigateBackFn: () => void
 
 const { targetRef, dragProgress, swipeDirection, isDragging } =
   useSwipeGestures({
     onSwipeDown: () => emit('go-lock'),
-    onSwipeUp: () => emit('show-cards'),
     onSwipeRight: () => {
       if (navigateBackFn) navigateBackFn()
     },
     canSwipeVertical: () => {
-      const dir = swipeDirection.value
-      if (dir === 'down') return canSwipeDown()
-      if (dir === 'up') return canSwipeUp()
+      if (swipeDirection.value === 'down') return canSwipeDown()
       return true
     },
   })
@@ -151,7 +142,7 @@ const deviceInfo = {
       :style="{
         transform: swipeDirection === 'right'
           ? `translateX(${dragProgress * 40}px)`
-          : `translateY(${swipeDirection === 'down' && canSwipeDown() ? dragProgress * 30 : swipeDirection === 'up' && canSwipeUp() ? -dragProgress * 30 : 0}px)`,
+          : `translateY(${swipeDirection === 'down' && canSwipeDown() ? dragProgress * 30 : 0}px)`,
         opacity: 1 - (swipeDirection ? dragProgress * 0.2 : 0),
       }"
     >

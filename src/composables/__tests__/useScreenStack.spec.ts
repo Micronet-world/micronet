@@ -2,20 +2,17 @@ import { describe, it, expect } from 'vitest'
 import { useScreenStack } from '../useScreenStack'
 
 describe('useScreenStack', () => {
-  it('starts on the lock screen with cards collapsed', () => {
-    const { screenStack, currentScreen, cardsExpanded } = useScreenStack()
+  it('starts on the lock screen', () => {
+    const { screenStack, currentScreen } = useScreenStack()
     expect(screenStack.value).toEqual(['lock'])
     expect(currentScreen.value).toBe('lock')
-    expect(cardsExpanded.value).toBe(false)
   })
 
-  it('push adds a screen to the top and collapses cards', () => {
-    const { screenStack, currentScreen, cardsExpanded, dispatch } = useScreenStack()
-    cardsExpanded.value = true
+  it('push adds a screen to the top', () => {
+    const { screenStack, currentScreen, dispatch } = useScreenStack()
     dispatch({ type: 'push', screen: 'home' })
     expect(screenStack.value).toEqual(['lock', 'home'])
     expect(currentScreen.value).toBe('home')
-    expect(cardsExpanded.value).toBe(false)
   })
 
   it('lock resets the stack to just lock', () => {
@@ -96,20 +93,5 @@ describe('useScreenStack', () => {
     dispatch({ type: 'push', screen: 'home' })
     dispatch({ type: 'navigate', screen: 'photos' })
     expect(screenStack.value).toEqual(['lock', 'home'])
-  })
-
-  it('show-cards expands and collapse retracts', () => {
-    const { cardsExpanded, dispatch } = useScreenStack()
-    dispatch({ type: 'show-cards' })
-    expect(cardsExpanded.value).toBe(true)
-    dispatch({ type: 'collapse' })
-    expect(cardsExpanded.value).toBe(false)
-  })
-
-  it('navigation intents collapse an expanded card stack', () => {
-    const { cardsExpanded, dispatch } = useScreenStack()
-    dispatch({ type: 'show-cards' })
-    dispatch({ type: 'push', screen: 'home' })
-    expect(cardsExpanded.value).toBe(false)
   })
 })

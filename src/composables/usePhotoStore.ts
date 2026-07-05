@@ -1,4 +1,23 @@
 import { ref, watch } from 'vue'
+import { storage } from './storage'
+
+export interface PhotoMetadata {
+  width?: number
+  height?: number
+  facingMode?: 'user' | 'environment'
+  filter?: string
+  zoom?: number
+  flashMode?: 'off' | 'on' | 'torch'
+  captureMethod?: 'imageCapture' | 'canvas'
+  orientation?: string
+  mimeType?: string
+  duration?: number
+  videoBitsPerSecond?: number
+  audioBitsPerSecond?: number
+  timezone?: number
+  location?: { latitude: number; longitude: number; altitude?: number | null; accuracy?: number }
+  deviceInfo?: string
+}
 
 export interface Photo {
   id: string
@@ -6,34 +25,35 @@ export interface Photo {
   type: 'photo' | 'video'
   timestamp: number
   favorite: boolean
+  metadata?: PhotoMetadata
 }
 
 const STORAGE_KEY = 'mobile-photos'
 
 // Module-scope singleton state
 const photos = ref<Photo[]>([])
-let loaded = false
+let loadPromise: Promise<void> | null = null
 
 function load() {
-  if (loaded) return
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      photos.value = JSON.parse(raw)
+  if (loadPromise) return loadPromise
+  loadPromise = (async () => {
+    try {
+      const raw = await storage.get(STORAGE_KEY)
+      if (raw) {
+        photos.value = JSON.parse(raw)
+      }
+    } catch {
+      // corrupt data — start fresh
+      photos.value = []
     }
-  } catch {
-    // corrupt data — start fresh
-    photos.value = []
-  }
-  loaded = true
+  })()
+  return loadPromise
 }
 
 function save() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(photos.value))
-  } catch {
+  storage.set(STORAGE_KEY, JSON.stringify(photos.value)).catch(() => {
     // storage full — silently fail
-  }
+  })
 }
 
 // Auto-save on mutation
@@ -42,18 +62,21 @@ watch(photos, save, { deep: true })
 export function usePhotoStore() {
   load()
 
-  function addPhoto(data: string, type: 'photo' | 'video' = 'photo') {
+  function addPhoto(data: string, type: 'photo' | 'video' = 'photo', metadata?: PhotoMetadata) {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 
-    photos.value.unshift({
+    const entry: Photo = {
       id,
       data,
       type,
       timestamp: Date.now(),
       favorite: false,
-    })
+    }
+    if (metadata) entry.metadata = metadata
+
+    photos.value.unshift(entry)
   }
 
   function deletePhoto(id: string) {

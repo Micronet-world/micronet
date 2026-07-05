@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import StatusBar from '../StatusBar.vue'
+
 import { usePhotoStore } from '../../composables/usePhotoStore'
+import type { PhotoMetadata } from '../../composables/usePhotoStore'
 import { useSwipeGestures } from '../../composables/useSwipeGestures'
 
 const emit = defineEmits<{
@@ -22,6 +23,8 @@ const stream = ref<MediaStream | null>(null)
 const facingMode = ref<'user' | 'environment'>('environment')
 const cameraReady = ref(false)
 const cameraError = ref('')
+let imageCapture: ImageCapture | null = null
+let focusModeTimeout: ReturnType<typeof setTimeout> | null = null
 
 // ─── Mode: Photo / Video ────────────────────────────────────────
 type CaptureMode = 'photo' | 'video'
@@ -106,10 +109,16 @@ async function startCamera() {
     const constraints: MediaStreamConstraints = {
       video: {
         facingMode: facingMode.value,
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
+        width: { ideal: 3840 },
+        height: { ideal: 2160 },
+        frameRate: { ideal: 30, max: 60 },
       },
-      audio: captureMode.value === 'video',
+      audio: captureMode.value === 'video' ? {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: { ideal: 2 },
+      } : false,
     }
 
     const newStream = await navigator.mediaDevices.getUserMedia(constraints)
@@ -137,6 +146,10 @@ async function startCamera() {
         zoomMin.value = capabilities.zoom.min || 1
         zoomMax.value = capabilities.zoom.max || 5
       }
+      applyOptimalTrackSettings(videoTrack, capabilities)
+      if ('ImageCapture' in window) {
+        imageCapture = new ImageCapture(videoTrack)
+      }
     }
 
     cameraReady.value = true
@@ -157,12 +170,174 @@ function stopCamera() {
   if (videoRef.value) {
     videoRef.value.srcObject = null
   }
+  imageCapture = null
+  if (focusModeTimeout) {
+    clearTimeout(focusModeTimeout)
+    focusModeTimeout = null
+  }
   cameraReady.value = false
 }
 
 async function switchCamera() {
   facingMode.value = facingMode.value === 'environment' ? 'user' : 'environment'
   await startCamera()
+}
+
+function applyOptimalTrackSettings(track: MediaStreamTrack, capabilities: any) {
+  if (!capabilities) return
+  const advanced: any = {}
+  if (capabilities.focusMode?.includes('continuous')) {
+    advanced.focusMode = 'continuous'
+  }
+  if (capabilities.whiteBalanceMode?.includes('continuous')) {
+    advanced.whiteBalanceMode = 'continuous'
+  }
+  if (capabilities.exposureMode?.includes('continuous')) {
+    advanced.exposureMode = 'continuous'
+  }
+  if (capabilities.exposureCompensation) {
+    advanced.exposureCompensation = 0
+  }
+  if (Object.keys(advanced).length > 0) {
+    try { track.applyConstraints({ advanced: [advanced] }) } catch { /* unsupported */ }
+  }
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+function blobToImage(blob: Blob): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(blob)
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img) }
+    img.onerror = (e) => { URL.revokeObjectURL(url); reject(e) }
+    img.src = url
+  })
+}
+
+function needsProcessing(): boolean {
+  return activeFilterIndex.value !== 0 || facingMode.value === 'user'
+}
+
+async function processPhotoBlob(blob: Blob): Promise<string> {
+  if (!needsProcessing()) return blobToDataUrl(blob)
+  if (!canvasRef.value) return blobToDataUrl(blob)
+
+  const img = await blobToImage(blob)
+  const canvas = canvasRef.value
+  canvas.width = img.naturalWidth
+  canvas.height = img.naturalHeight
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+
+  if (facingMode.value === 'user') {
+    ctx.translate(canvas.width, 0)
+    ctx.scale(-1, 1)
+  }
+
+  if (activeFilterCss.value !== 'none') {
+    ctx.filter = activeFilterCss.value
+  }
+
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', 0.95)
+}
+
+async function capturePhotoFromCanvas() {
+  if (!videoRef.value || !canvasRef.value) return
+
+  const video = videoRef.value
+  const canvas = canvasRef.value
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+
+  if (facingMode.value === 'user') {
+    ctx.translate(canvas.width, 0)
+    ctx.scale(-1, 1)
+  }
+
+  ctx.filter = activeFilterCss.value === 'none' ? 'none' : activeFilterCss.value
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.95)
+  const metadata = await gatherPhotoMetadata('canvas')
+  addPhoto(dataUrl, 'photo', metadata)
+  triggerShutterFlash()
+}
+
+function triggerShutterFlash() {
+  showShutterFlash.value = true
+  setTimeout(() => { showShutterFlash.value = false }, 150)
+}
+
+// ─── Metadata ──────────────────────────────────────────────────
+let pendingVideoMetadata: PhotoMetadata | null = null
+
+function getVideoTrackSettings(): MediaTrackSettings {
+  if (!stream.value) return {}
+  const track = stream.value.getVideoTracks()[0]
+  return track?.getSettings() ?? {}
+}
+
+async function gatherLocation(): Promise<PhotoMetadata['location']> {
+  if (!('geolocation' in navigator)) return undefined
+  return new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        altitude: pos.coords.altitude,
+        accuracy: pos.coords.accuracy,
+      }),
+      () => resolve(undefined),
+      { maximumAge: 30_000, timeout: 5_000 },
+    )
+  })
+}
+
+async function gatherPhotoMetadata(captureMethod: 'imageCapture' | 'canvas'): Promise<PhotoMetadata> {
+  const settings = getVideoTrackSettings()
+  const [location] = await Promise.all([gatherLocation()])
+  const meta: PhotoMetadata = {
+    width: settings.width,
+    height: settings.height,
+    facingMode: facingMode.value,
+    filter: filters[activeFilterIndex.value].name,
+    zoom: zoomLevel.value,
+    flashMode: flashMode.value,
+    captureMethod,
+    orientation: screen.orientation?.type,
+    timezone: new Date().getTimezoneOffset(),
+    deviceInfo: navigator.userAgent,
+  }
+  if (location) meta.location = location
+  return meta
+}
+
+function gatherVideoMetadata(): PhotoMetadata {
+  const settings = getVideoTrackSettings()
+  return {
+    width: settings.width,
+    height: settings.height,
+    facingMode: facingMode.value,
+    zoom: zoomLevel.value,
+    flashMode: flashMode.value,
+    orientation: screen.orientation?.type,
+    timezone: new Date().getTimezoneOffset(),
+    deviceInfo: navigator.userAgent,
+  }
 }
 
 // ─── Photo Capture ──────────────────────────────────────────────
@@ -177,25 +352,34 @@ function capturePhoto() {
   doCapturePhoto()
 }
 
-function doCapturePhoto() {
+async function doCapturePhoto() {
   if (!videoRef.value || !canvasRef.value) return
 
-  const video = videoRef.value
-  const canvas = canvasRef.value
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
+  if (imageCapture) {
+    try {
+      const photoSettings: any = {}
+      if (flashMode.value === 'on') {
+        photoSettings.fillLightMode = 'flash'
+      } else if (flashMode.value === 'off') {
+        photoSettings.fillLightMode = 'off'
+      }
+      let blob: Blob
+      try {
+        blob = await imageCapture.takePhoto(photoSettings)
+      } catch {
+        blob = await imageCapture.takePhoto()
+      }
+      const dataUrl = await processPhotoBlob(blob)
+      const metadata = await gatherPhotoMetadata('imageCapture')
+      addPhoto(dataUrl, 'photo', metadata)
+      triggerShutterFlash()
+      return
+    } catch {
+      // ImageCapture failed entirely, fall back to canvas
+    }
+  }
 
-  const ctx = canvas.getContext('2d')!
-  // Apply filter to canvas
-  ctx.filter = activeFilterCss.value === 'none' ? 'none' : activeFilterCss.value
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
-  addPhoto(dataUrl, 'photo')
-
-  // Shutter flash
-  showShutterFlash.value = true
-  setTimeout(() => { showShutterFlash.value = false }, 150)
+  await capturePhotoFromCanvas()
 }
 
 // ─── Video Recording ────────────────────────────────────────────
@@ -211,24 +395,64 @@ function startRecording() {
   if (!stream.value) return
 
   recordedChunks.value = []
-  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-    ? 'video/webm;codecs=vp9'
-    : 'video/webm'
+  const mimeTypes = [
+    'video/mp4;codecs=avc1,mp4a.40.2',
+    'video/mp4;codecs=h264,aac',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp8',
+    'video/webm',
+  ]
+  const mimeType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t))
+
+  const videoTrack = stream.value.getVideoTracks()[0]
+  const settings = videoTrack?.getSettings()
+  const width = settings?.width || 1920
+  const height = settings?.height || 1080
+  const fps = settings?.frameRate || 30
+  const videoBitsPerSecond = Math.min(Math.round(width * height * fps * 0.12), 30_000_000)
+
+  const options: MediaRecorderOptions = {
+    videoBitsPerSecond,
+    audioBitsPerSecond: 128_000,
+  }
+  if (mimeType) options.mimeType = mimeType
 
   try {
-    mediaRecorder.value = new MediaRecorder(stream.value, { mimeType })
+    mediaRecorder.value = new MediaRecorder(stream.value, options)
   } catch {
     mediaRecorder.value = new MediaRecorder(stream.value)
   }
+
+  // Gather metadata at recording start (includes async location fetch)
+  pendingVideoMetadata = gatherVideoMetadata()
+  gatherLocation().then(loc => {
+    if (pendingVideoMetadata && loc) pendingVideoMetadata.location = loc
+  })
+
+  const recMimeType = mediaRecorder.value.mimeType || mimeType || 'video/webm'
+  const recVideoBps = videoBitsPerSecond
+  const recAudioBps = 128_000
 
   mediaRecorder.value.ondataavailable = (e) => {
     if (e.data.size > 0) recordedChunks.value.push(e.data)
   }
 
   mediaRecorder.value.onstop = () => {
-    const blob = new Blob(recordedChunks.value, { type: 'video/webm' })
+    const meta: PhotoMetadata = {
+      ...pendingVideoMetadata,
+      mimeType: recMimeType,
+      duration: recordingTime.value,
+      videoBitsPerSecond: recVideoBps,
+      audioBitsPerSecond: recAudioBps,
+    }
+    pendingVideoMetadata = null
+
+    const blob = new Blob(recordedChunks.value, { type: recMimeType })
     const url = URL.createObjectURL(blob)
-    addPhoto(url, 'video')
+    addPhoto(url, 'video', meta)
   }
 
   mediaRecorder.value.start(100)
@@ -336,16 +560,49 @@ function handleViewfinderTap(e: MouseEvent | TouchEvent) {
     focusPoint.visible = false
   }, 1200)
 
-  // Try to set exposure point if supported
   if (stream.value) {
     const track = stream.value.getVideoTracks()[0]
+    const capabilities = track.getCapabilities?.() as any
+
+    const x = focusPoint.x / target.width
+    const y = focusPoint.y / target.height
+
+    const constraints: any = {
+      pointsOfInterest: [{ x, y }],
+    }
+
+    if (capabilities?.focusMode?.includes('manual')) {
+      constraints.focusMode = 'manual'
+    }
+    if (capabilities?.exposureMode?.includes('manual')) {
+      constraints.exposureMode = 'manual'
+    }
+    if (capabilities?.whiteBalanceMode?.includes('manual')) {
+      constraints.whiteBalanceMode = 'manual'
+    }
+
     try {
-      track.applyConstraints({
-        advanced: [{ pointsOfInterest: [{ x: focusPoint.x / target.width, y: focusPoint.y / target.height }] } as any]
-      })
+      track.applyConstraints({ advanced: [constraints] })
     } catch {
       // Not supported
     }
+
+    if (focusModeTimeout) clearTimeout(focusModeTimeout)
+    focusModeTimeout = setTimeout(() => {
+      const reset: any = {}
+      if (capabilities?.focusMode?.includes('continuous')) {
+        reset.focusMode = 'continuous'
+      }
+      if (capabilities?.exposureMode?.includes('continuous')) {
+        reset.exposureMode = 'continuous'
+      }
+      if (capabilities?.whiteBalanceMode?.includes('continuous')) {
+        reset.whiteBalanceMode = 'continuous'
+      }
+      if (Object.keys(reset).length > 0) {
+        try { track.applyConstraints({ advanced: [reset] }) } catch { /* unsupported */ }
+      }
+    }, 2500)
   }
 }
 
@@ -411,6 +668,7 @@ onUnmounted(() => {
   if (recordingInterval) clearInterval(recordingInterval)
   if (countdownInterval) clearInterval(countdownInterval)
   if (focusTimeout) clearTimeout(focusTimeout)
+  if (focusModeTimeout) clearTimeout(focusModeTimeout)
 })
 </script>
 
@@ -421,11 +679,6 @@ onUnmounted(() => {
     :class="{ dragging: isDragging }"
     @click="closeAllMenus"
   >
-    <!-- Status Bar -->
-    <div class="camera-status-bar">
-      <StatusBar />
-    </div>
-
     <!-- Viewfinder -->
     <div class="viewfinder-container" @click="handleViewfinderTap">
       <video
@@ -748,15 +1001,6 @@ onUnmounted(() => {
   -webkit-user-select: none;
 }
 
-/* ─── Status Bar ─────────────────────────────────────────────── */
-.camera-status-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 30;
-  padding: 0 8px;
-}
 
 /* ─── Viewfinder ─────────────────────────────────────────────── */
 .viewfinder-container {
@@ -995,7 +1239,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: calc(env(safe-area-inset-top, 12px) + 36px) 16px 12px;
+  padding: calc(env(safe-area-inset-top, 12px) + 8px) 16px 12px;
   z-index: 25;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
 }
