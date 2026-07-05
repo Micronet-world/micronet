@@ -2,18 +2,11 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { useSwipeGestures } from '../../composables/useSwipeGestures'
 
 const emit = defineEmits<{
   'go-back': []
   'go-home': []
 }>()
-
-const { targetRef, isDragging } =
-  useSwipeGestures({
-    onSwipeRight: () => emit('go-back'),
-    onSwipeUp: () => emit('go-home'),
-  })
 
 // ─── Map State ─────────────────────────────────────────────────
 const mapContainer = ref<HTMLElement | null>(null)
@@ -155,11 +148,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    :ref="targetRef"
-    class="maps-screen"
-    :class="{ dragging: isDragging }"
-  >
+  <div class="maps-screen">
     <!-- Location Loading State -->
     <div v-if="!locationReady" class="location-loading">
       <div class="loading-content">
