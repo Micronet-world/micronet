@@ -28,7 +28,7 @@ export interface Photo {
   metadata?: PhotoMetadata
 }
 
-const STORAGE_KEY = 'mobile-photos'
+const STORAGE_KEY = 'micronet-photos'
 
 // Module-scope singleton state
 const photos = ref<Photo[]>([])

@@ -4,7 +4,7 @@ import zh from './locales/zh'
 
 const i18n = createI18n({
   legacy: false,
-  locale: localStorage.getItem('mobile-locale') || 'en',
+  locale: localStorage.getItem('micronet-locale') || 'en',
   fallbackLocale: 'en',
   messages: {
     en,
@@ -16,5 +16,5 @@ export default i18n
 
 export function setLocale(locale: 'en' | 'zh') {
   i18n.global.locale.value = locale
-  localStorage.setItem('mobile-locale', locale)
+  localStorage.setItem('micronet-locale', locale)
 }

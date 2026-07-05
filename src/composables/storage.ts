@@ -70,7 +70,7 @@ function createOPFSProvider(): StorageProvider | null {
 
 // ─── IndexedDB ─────────────────────────────────────────────────────────
 
-const IDB_DB = 'mobile-storage'
+const IDB_DB = 'micronet-storage'
 const IDB_STORE = 'kv'
 const IDB_VERSION = 1
 

@@ -84,7 +84,7 @@ declare global {
 
 // ─── Persistent storage helpers ──────────────────────────────────────
 
-const STORAGE_KEY = 'mobile-bluetooth-devices'
+const STORAGE_KEY = 'micronet-bluetooth-devices'
 
 interface StoredDevice {
   id: string

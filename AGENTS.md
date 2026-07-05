@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guidance for agents working in `mobile/` (the Vue 3 lock-screen prototype). Run all commands from this directory.
+Guidance for agents working in `micronet/` (the Vue 3 lock-screen prototype). Run all commands from this directory.
 
 > `CLAUDE.md` in this dir is **stale** on two points: it claims "no test runner" (vitest is configured) and describes navigation as a simple `lock`/`home` ref (it's now a screen stack). Trust this file where they differ.
 
@@ -26,7 +26,7 @@ Guidance for agents working in `mobile/` (the Vue 3 lock-screen prototype). Run 
 - **`useScreenStack`** (`src/composables/useScreenStack.ts`) owns `screenStack: ref<ScreenId[]>`, `currentScreen` (stack top), and a single `dispatch(intent: NavIntent)` reducer covering `push`/`lock`/`home`/`back`/`navigate`. `App.vue` calls this and otherwise has no navigation logic.
 - `App.vue` renders the current screen with `<component :is="currentPlugin.component" :key="currentScreen" v-on="screenListeners">` — there is **no per-screen `v-if` chain**; `screenListeners` is built from the plugin's `events` map.
 - Feature screens live in `src/components/{camera,home,photos,settings}/*Screen.vue`. Lock-screen subcomponents (`StatusBar`, `TimeDisplay`, `BottomActions`, `SwipeIndicator`) sit directly in `src/components/`.
-- Shared logic is in `src/composables/`: `useScreenStack` (navigation), `useSwipeGestures` (gestures), and `usePhotoStore` (a module-scope singleton persisted to `localStorage` under key `mobile-photos`, auto-saving via `watch`).
+- Shared logic is in `src/composables/`: `useScreenStack` (navigation), `useSwipeGestures` (gestures), and `usePhotoStore` (a module-scope singleton persisted to `localStorage` under key `micronet-photos`, auto-saving via `watch`).
 
 ## Gesture system
 
@@ -42,5 +42,5 @@ Guidance for agents working in `mobile/` (the Vue 3 lock-screen prototype). Run 
 
 ## Repo context
 
-- This directory is one self-contained project inside a larger git repo (the `open-game` monorepo at the parent). It has its own `package.json`/`node_modules` and is **not** part of a shared JS workspace — install and run everything from `mobile/`.
+- This directory is one self-contained project inside a larger git repo (the `open-game` monorepo at the parent). It has its own `package.json`/`node_modules` and is **not** part of a shared JS workspace — install and run everything from `micronet/`.
 - Pure static Vite SPA: `npm run build` emits `dist/`. There's no SSR or backend here; Cloudflare Workers/Wrangler config elsewhere in the monorepo is unrelated to this project.

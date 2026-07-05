@@ -11,7 +11,7 @@ export interface CalendarEvent {
   notes?: string
 }
 
-const STORAGE_KEY = 'mobile-calendar-events'
+const STORAGE_KEY = 'micronet-calendar-events'
 
 const events = ref<CalendarEvent[]>([])
 let loadPromise: Promise<void> | null = null
