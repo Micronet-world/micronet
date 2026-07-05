@@ -286,21 +286,6 @@ function handleDoubleTap() {
   }
   lastTap = now
 }
-
-// ─── Close ──────────────────────────────────────────────────────
-function handleClose() {
-  if (viewerOpen.value) {
-    if (showInfo.value) {
-      showInfo.value = false
-    } else if (zoomed.value) {
-      zoomed.value = false
-    } else {
-      closeViewer()
-    }
-  } else {
-    emit('go-back')
-  }
-}
 </script>
 
 <template>
@@ -312,11 +297,6 @@ function handleClose() {
     <!-- Header -->
     <div class="header">
       <div class="header-top">
-        <button class="back-btn" @click="handleClose" aria-label="Back">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
         <h1 class="header-title">{{ selectMode ? t('photos.selected', { count: selectedIds.size }) : t('photos.title') }}</h1>
         <button
           v-if="!selectMode"
@@ -665,29 +645,6 @@ function handleClose() {
   align-items: center;
   justify-content: space-between;
   height: 44px;
-}
-
-.back-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: none;
-  border: none;
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.back-btn:active {
-  background: var(--color-border);
-}
-
-.back-btn svg {
-  width: 22px;
-  height: 22px;
 }
 
 .header-title {

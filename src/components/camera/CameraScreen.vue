@@ -658,13 +658,6 @@ function downloadCapture(index: number) {
   a.click()
 }
 
-// ─── Close / Back ───────────────────────────────────────────────
-function handleClose() {
-  stopCamera()
-  stopRecording()
-  emit('go-back')
-}
-
 // ─── Close menus on outside click ───────────────────────────────
 function closeAllMenus() {
   flashMenuOpen.value = false
@@ -757,12 +750,6 @@ onUnmounted(() => {
     <!-- Top Bar -->
     <div class="top-bar">
       <div class="top-bar-left">
-        <!-- Close button -->
-        <button class="top-btn close-btn" @click.stop="handleClose" aria-label="Close camera">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none" />
-          </svg>
-        </button>
       </div>
 
       <div class="top-bar-right">
@@ -1294,15 +1281,6 @@ onUnmounted(() => {
 .top-btn svg {
   width: 20px;
   height: 20px;
-}
-
-.close-btn {
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.close-btn svg {
-  width: 18px;
-  height: 18px;
 }
 
 .top-btn-wrapper {

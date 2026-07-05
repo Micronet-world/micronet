@@ -21,6 +21,7 @@ const viewMonth = ref(today.getMonth())
 const selectedDate = ref(formatDate(today))
 const showModal = ref(false)
 const editingEvent = ref<CalendarEvent | null>(null)
+const slideDirection = ref<'left' | 'right'>('right')
 
 const eventTitle = ref('')
 const eventStartTime = ref('')
@@ -28,7 +29,16 @@ const eventEndTime = ref('')
 const eventColor = ref('#007aff')
 const eventNotes = ref('')
 
-const EVENT_COLORS = ['#007aff', '#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#5856d6', '#af52de', '#ff2d55']
+const EVENT_COLORS = [
+  { value: '#007aff', name: 'Blue' },
+  { value: '#ff3b30', name: 'Red' },
+  { value: '#ff9500', name: 'Orange' },
+  { value: '#ffcc00', name: 'Yellow' },
+  { value: '#34c759', name: 'Green' },
+  { value: '#5856d6', name: 'Purple' },
+  { value: '#af52de', name: 'Violet' },
+  { value: '#ff2d55', name: 'Pink' },
+]
 
 // ─── Helpers ────────────────────────────────────────────────────
 function formatDate(d: Date): string {
@@ -47,6 +57,8 @@ const weekDays = computed(() => [
   t('calendar.th'), t('calendar.fr'), t('calendar.sa'),
 ])
 
+const monthKey = computed(() => `${viewYear.value}-${viewMonth.value}`)
+
 // ─── Calendar Grid ──────────────────────────────────────────────
 interface CalendarDay {
   date: string
@@ -54,6 +66,7 @@ interface CalendarDay {
   isCurrentMonth: boolean
   isToday: boolean
   hasEvents: boolean
+  eventCount: number
 }
 
 const calendarDays = computed<CalendarDay[]>(() => {
@@ -71,20 +84,23 @@ const calendarDays = computed<CalendarDay[]>(() => {
     const d = prevMonthLast - i
     const dt = new Date(year, month - 1, d)
     const dateStr = formatDate(dt)
-    days.push({ date: dateStr, day: d, isCurrentMonth: false, isToday: dateStr === formatDate(today), hasEvents: getEventsForDate(dateStr).length > 0 })
+    const count = getEventsForDate(dateStr).length
+    days.push({ date: dateStr, day: d, isCurrentMonth: false, isToday: dateStr === formatDate(today), hasEvents: count > 0, eventCount: count })
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dt = new Date(year, month, d)
     const dateStr = formatDate(dt)
-    days.push({ date: dateStr, day: d, isCurrentMonth: true, isToday: dateStr === formatDate(today), hasEvents: getEventsForDate(dateStr).length > 0 })
+    const count = getEventsForDate(dateStr).length
+    days.push({ date: dateStr, day: d, isCurrentMonth: true, isToday: dateStr === formatDate(today), hasEvents: count > 0, eventCount: count })
   }
 
   const remaining = 42 - days.length
   for (let d = 1; d <= remaining; d++) {
     const dt = new Date(year, month + 1, d)
     const dateStr = formatDate(dt)
-    days.push({ date: dateStr, day: d, isCurrentMonth: false, isToday: dateStr === formatDate(today), hasEvents: getEventsForDate(dateStr).length > 0 })
+    const count = getEventsForDate(dateStr).length
+    days.push({ date: dateStr, day: d, isCurrentMonth: false, isToday: dateStr === formatDate(today), hasEvents: count > 0, eventCount: count })
   }
 
   return days
@@ -102,6 +118,7 @@ const selectedDayLabel = computed(() => {
 
 // ─── Navigation ─────────────────────────────────────────────────
 function prevMonth() {
+  slideDirection.value = 'left'
   if (viewMonth.value === 0) {
     viewMonth.value = 11
     viewYear.value--
@@ -111,6 +128,7 @@ function prevMonth() {
 }
 
 function nextMonth() {
+  slideDirection.value = 'right'
   if (viewMonth.value === 11) {
     viewMonth.value = 0
     viewYear.value++
@@ -120,9 +138,13 @@ function nextMonth() {
 }
 
 function goToToday() {
-  viewYear.value = today.getFullYear()
-  viewMonth.value = today.getMonth()
-  selectedDate.value = formatDate(today)
+  const now = new Date()
+  const nowMonth = now.getMonth()
+  const nowYear = now.getFullYear()
+  slideDirection.value = nowYear > viewYear.value || (nowYear === viewYear.value && nowMonth > viewMonth.value) ? 'right' : 'left'
+  viewYear.value = nowYear
+  viewMonth.value = nowMonth
+  selectedDate.value = formatDate(now)
 }
 
 function selectDay(date: string) {
@@ -202,13 +224,11 @@ function formatEventTime(time: string): string {
       <!-- Header -->
       <div class="header">
         <div class="header-top">
-          <button class="back-btn" @click="emit('go-back')" aria-label="Back">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </button>
           <h1 class="header-title">{{ t('calendar.title') }}</h1>
-          <button class="today-btn" @click="goToToday">{{ t('calendar.today') }}</button>
+          <button class="today-pill" @click="goToToday">
+            <span class="today-dot"></span>
+            {{ t('calendar.today') }}
+          </button>
         </div>
 
         <!-- Month Navigation -->
@@ -218,7 +238,9 @@ function formatEventTime(time: string): string {
               <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
-          <span class="month-label">{{ monthNames[viewMonth] }} {{ viewYear }}</span>
+          <Transition :name="slideDirection === 'right' ? 'slide-right' : 'slide-left'" mode="out-in">
+            <span :key="monthKey" class="month-label">{{ monthNames[viewMonth] }} {{ viewYear }}</span>
+          </Transition>
           <button class="nav-btn" @click="nextMonth" aria-label="Next month">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
@@ -233,27 +255,40 @@ function formatEventTime(time: string): string {
       </div>
 
       <!-- Calendar Grid -->
-      <div class="calendar-grid">
-        <button
-          v-for="day in calendarDays"
-          :key="day.date"
-          class="day-cell"
-          :class="{
-            'other-month': !day.isCurrentMonth,
-            'is-today': day.isToday,
-            'is-selected': day.date === selectedDate,
-          }"
-          @click="selectDay(day.date)"
-        >
-          <span class="day-number">{{ day.day }}</span>
-          <span v-if="day.hasEvents" class="event-dot" :style="{ background: getEventsForDate(day.date)[0]?.color }"></span>
-        </button>
-      </div>
+      <Transition :name="slideDirection === 'right' ? 'slide-right' : 'slide-left'" mode="out-in">
+        <div :key="monthKey" class="calendar-grid">
+          <button
+            v-for="(day, i) in calendarDays"
+            :key="day.date"
+            class="day-cell"
+            :class="{
+              'other-month': !day.isCurrentMonth,
+              'is-today': day.isToday,
+              'is-selected': day.date === selectedDate,
+            }"
+            :style="{ animationDelay: `${i * 8}ms` }"
+            @click="selectDay(day.date)"
+          >
+            <span class="day-number">{{ day.day }}</span>
+            <div class="event-indicator" v-if="day.hasEvents">
+              <span
+                v-for="(ev, j) in getEventsForDate(day.date).slice(0, 3)"
+                :key="j"
+                class="event-pip"
+                :style="{ background: ev.color }"
+              ></span>
+            </div>
+          </button>
+        </div>
+      </Transition>
 
       <!-- Selected Day Events -->
       <div class="day-events">
         <div class="day-events-header">
-          <span class="day-events-label">{{ selectedDayLabel }}</span>
+          <div class="day-events-label-wrap">
+            <span class="day-events-label">{{ selectedDayLabel }}</span>
+            <span v-if="selectedDayEvents.length > 0" class="event-count">{{ selectedDayEvents.length }}</span>
+          </div>
           <button class="add-event-btn" @click="openNewEvent" aria-label="Add event">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round" />
@@ -262,33 +297,43 @@ function formatEventTime(time: string): string {
           </button>
         </div>
 
-        <div v-if="selectedDayEvents.length === 0" class="no-events">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <line x1="16" y1="2" x2="16" y2="6" stroke-linecap="round" />
-            <line x1="8" y1="2" x2="8" y2="6" stroke-linecap="round" />
-            <line x1="3" y1="10" x2="21" y2="10" stroke-linecap="round" />
-          </svg>
-          <span>{{ t('calendar.noEvents') }}</span>
-        </div>
-
-        <div v-else class="event-list">
-          <button
-            v-for="event in selectedDayEvents"
-            :key="event.id"
-            class="event-item"
-            @click="openEditEvent(event)"
-          >
-            <div class="event-color-bar" :style="{ background: event.color }"></div>
-            <div class="event-info">
-              <span class="event-title">{{ event.title }}</span>
-              <span v-if="event.startTime" class="event-time">
-                {{ formatEventTime(event.startTime) }}{{ event.endTime ? ` – ${formatEventTime(event.endTime)}` : '' }}
-              </span>
-              <span v-if="event.notes" class="event-notes">{{ event.notes }}</span>
+        <Transition name="fade" mode="out-in">
+          <div v-if="selectedDayEvents.length === 0" key="empty" class="no-events">
+            <div class="empty-illustration">
+              <svg viewBox="0 0 64 64" fill="none">
+                <rect x="8" y="12" width="48" height="44" rx="8" stroke="currentColor" stroke-width="2" />
+                <line x1="8" y1="24" x2="56" y2="24" stroke="currentColor" stroke-width="2" />
+                <line x1="22" y1="8" x2="22" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <line x1="42" y1="8" x2="42" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <circle cx="32" cy="40" r="8" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3" />
+              </svg>
             </div>
-          </button>
-        </div>
+            <span class="empty-text">{{ t('calendar.noEvents') }}</span>
+          </div>
+
+          <div v-else key="list" class="event-list">
+            <button
+              v-for="(event, i) in selectedDayEvents"
+              :key="event.id"
+              class="event-item"
+              :style="{ animationDelay: `${i * 60}ms` }"
+              @click="openEditEvent(event)"
+            >
+              <div class="event-color-bar" :style="{ background: event.color }"></div>
+              <div class="event-info">
+                <span class="event-title">{{ event.title }}</span>
+                <span v-if="event.startTime" class="event-time">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" class="time-icon">
+                    <circle cx="8" cy="8" r="6.5" />
+                    <path d="M8 4.5V8l2.5 2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  {{ formatEventTime(event.startTime) }}{{ event.endTime ? ` – ${formatEventTime(event.endTime)}` : '' }}
+                </span>
+                <span v-if="event.notes" class="event-notes">{{ event.notes }}</span>
+              </div>
+            </button>
+          </div>
+        </Transition>
       </div>
     </div>
 
@@ -296,9 +341,10 @@ function formatEventTime(time: string): string {
     <Transition name="modal">
       <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
         <div class="modal">
+          <div class="modal-handle"></div>
           <div class="modal-header">
             <button class="modal-close" @click="closeModal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
               </svg>
             </button>
@@ -307,45 +353,61 @@ function formatEventTime(time: string): string {
           </div>
 
           <div class="modal-body">
-            <input
-              v-model="eventTitle"
-              type="text"
-              class="modal-input title-input"
-              :placeholder="t('calendar.titlePlaceholder')"
-            />
-
-            <div class="modal-row">
-              <span class="modal-label">{{ t('calendar.startTime') }}</span>
-              <input v-model="eventStartTime" type="time" class="modal-input time-input" />
+            <div class="title-row">
+              <div class="color-dot-large" :style="{ background: eventColor }"></div>
+              <input
+                v-model="eventTitle"
+                type="text"
+                class="modal-input title-input"
+                :placeholder="t('calendar.titlePlaceholder')"
+              />
             </div>
 
-            <div class="modal-row">
-              <span class="modal-label">{{ t('calendar.endTime') }}</span>
-              <input v-model="eventEndTime" type="time" class="modal-input time-input" />
-            </div>
-
-            <div class="modal-row">
-              <span class="modal-label">{{ t('calendar.color') }}</span>
-              <div class="color-picker">
-                <button
-                  v-for="color in EVENT_COLORS"
-                  :key="color"
-                  class="color-dot"
-                  :class="{ active: eventColor === color }"
-                  :style="{ background: color }"
-                  @click="eventColor = color"
-                />
+            <div class="modal-section">
+              <div class="modal-row">
+                <span class="modal-label">{{ t('calendar.startTime') }}</span>
+                <input v-model="eventStartTime" type="time" class="modal-input time-input" />
+              </div>
+              <div class="modal-divider"></div>
+              <div class="modal-row">
+                <span class="modal-label">{{ t('calendar.endTime') }}</span>
+                <input v-model="eventEndTime" type="time" class="modal-input time-input" />
               </div>
             </div>
 
-            <textarea
-              v-model="eventNotes"
-              class="modal-input notes-input"
-              :placeholder="t('calendar.notesPlaceholder')"
-              rows="3"
-            ></textarea>
+            <div class="modal-section">
+              <span class="modal-section-label">{{ t('calendar.color') }}</span>
+              <div class="color-picker">
+                <button
+                  v-for="color in EVENT_COLORS"
+                  :key="color.value"
+                  class="color-dot"
+                  :class="{ active: eventColor === color.value }"
+                  :style="{ background: color.value }"
+                  @click="eventColor = color.value"
+                >
+                  <svg v-if="eventColor === color.value" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2.5">
+                    <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="modal-section">
+              <span class="modal-section-label">{{ t('calendar.notes') }}</span>
+              <textarea
+                v-model="eventNotes"
+                class="modal-input notes-input"
+                :placeholder="t('calendar.notesPlaceholder')"
+                rows="3"
+              ></textarea>
+            </div>
 
             <button v-if="editingEvent" class="delete-event-btn" @click="handleDeleteEvent">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polyline points="3 5 5 5 17 5" stroke-linecap="round" />
+                <path d="M15 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5m3 0V3.5a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5V5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
               {{ t('calendar.deleteEvent') }}
             </button>
           </div>
@@ -369,6 +431,12 @@ function formatEventTime(time: string): string {
   position: absolute;
   inset: 0;
   background: var(--color-bg);
+  animation: breathe 8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { background-color: #faf9f6; }
+  50% { background-color: #f5f2ec; }
 }
 
 .content {
@@ -383,8 +451,11 @@ function formatEventTime(time: string): string {
 /* ─── Header ─────────────────────────────────────────────────── */
 .header {
   flex-shrink: 0;
-  background: var(--color-bg);
   padding: calc(env(safe-area-inset-top, 12px) + 8px) 16px 0;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(250, 249, 246, 0.85);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .header-top {
@@ -394,47 +465,44 @@ function formatEventTime(time: string): string {
   height: 44px;
 }
 
-.back-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: none;
-  border: none;
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.back-btn:active {
-  background: var(--color-border);
-}
-
-.back-btn svg {
-  width: 22px;
-  height: 22px;
-}
-
 .header-title {
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--color-text);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
 }
 
-.today-btn {
-  font-size: 14px;
+.today-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
   color: #007aff;
-  background: none;
+  background: rgba(0, 122, 255, 0.08);
   border: none;
+  border-radius: 16px;
+  padding: 6px 14px;
   cursor: pointer;
-  padding: 4px 8px;
+  transition: all 0.2s ease;
 }
 
-.today-btn:active {
-  opacity: 0.5;
+.today-pill:active {
+  transform: scale(0.95);
+  background: rgba(0, 122, 255, 0.15);
+}
+
+.today-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #007aff;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }
 
 /* ─── Month Navigation ───────────────────────────────────────── */
@@ -442,12 +510,12 @@ function formatEventTime(time: string): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 8px 8px;
+  padding: 10px 4px 6px;
 }
 
 .nav-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: none;
   border: none;
@@ -456,11 +524,12 @@ function formatEventTime(time: string): string {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .nav-btn:active {
   background: rgba(0, 122, 255, 0.1);
+  transform: scale(0.9);
 }
 
 .nav-btn svg {
@@ -474,28 +543,45 @@ function formatEventTime(time: string): string {
   color: var(--color-text);
 }
 
+/* ─── Month Slide Transitions ────────────────────────────────── */
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.slide-left-enter-from { transform: translateX(-30px); opacity: 0; }
+.slide-left-leave-to { transform: translateX(30px); opacity: 0; }
+.slide-right-enter-from { transform: translateX(30px); opacity: 0; }
+.slide-right-leave-to { transform: translateX(-30px); opacity: 0; }
+
 /* ─── Weekday Row ────────────────────────────────────────────── */
 .weekday-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  padding: 8px 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: 10px 0 6px;
 }
 
 .weekday {
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--color-text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+}
+
+.weekday:first-child,
+.weekday:last-child {
+  color: #ff3b30;
 }
 
 /* ─── Calendar Grid ──────────────────────────────────────────── */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  padding: 4px 8px;
+  padding: 4px 8px 8px;
   flex-shrink: 0;
 }
 
@@ -505,32 +591,40 @@ function formatEventTime(time: string): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   background: none;
   border: none;
   cursor: pointer;
   border-radius: 50%;
   position: relative;
-  transition: background 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: day-enter 0.3s ease both;
+}
+
+@keyframes day-enter {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .day-cell:active {
-  background: rgba(0, 0, 0, 0.04);
+  transform: scale(0.9);
 }
 
 .day-number {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 400;
   color: var(--color-text);
   line-height: 1;
+  transition: all 0.2s ease;
 }
 
 .day-cell.other-month .day-number {
   color: var(--color-text-muted);
+  opacity: 0.5;
 }
 
 .day-cell.is-today {
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(0, 122, 255, 0.06);
 }
 
 .day-cell.is-today .day-number {
@@ -540,6 +634,7 @@ function formatEventTime(time: string): string {
 
 .day-cell.is-selected {
   background: #007aff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .day-cell.is-selected .day-number {
@@ -551,15 +646,23 @@ function formatEventTime(time: string): string {
   color: rgba(255, 255, 255, 0.7);
 }
 
-.event-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.day-cell.is-selected .event-pip {
+  background: #fff !important;
+  opacity: 0.8;
 }
 
-.day-cell.is-selected .event-dot {
-  background: #fff !important;
+/* ─── Event Indicator ────────────────────────────────────────── */
+.event-indicator {
+  display: flex;
+  gap: 2px;
+  height: 4px;
+}
+
+.event-pip {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 /* ─── Day Events ─────────────────────────────────────────────── */
@@ -574,24 +677,43 @@ function formatEventTime(time: string): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
+  padding: 14px 0 10px;
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   position: sticky;
   top: 0;
   background: var(--color-bg);
   z-index: 2;
 }
 
+.day-events-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .day-events-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.event-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 10px;
+  padding: 1px 8px;
+  min-width: 22px;
+  text-align: center;
+  line-height: 1.5;
 }
 
 .add-event-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: #007aff;
   border: none;
@@ -600,11 +722,12 @@ function formatEventTime(time: string): string {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .add-event-btn:active {
-  transform: scale(0.9);
+  transform: scale(0.85);
   background: #0066d6;
 }
 
@@ -619,19 +742,36 @@ function formatEventTime(time: string): string {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 32px 0;
+  padding: 40px 0;
   color: var(--color-text-muted);
 }
 
-.no-events svg {
-  width: 40px;
-  height: 40px;
-  opacity: 0.5;
+.empty-illustration {
+  width: 64px;
+  height: 64px;
+  opacity: 0.3;
+  animation: float 3s ease-in-out infinite;
 }
 
-.no-events span {
-  font-size: 14px;
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
+
+.empty-illustration svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ─── Fade Transition ────────────────────────────────────────── */
+.fade-enter-active { transition: opacity 0.2s ease; }
+.fade-leave-active { transition: opacity 0.15s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 /* ─── Event List ─────────────────────────────────────────────── */
 .event-list {
@@ -645,19 +785,25 @@ function formatEventTime(time: string): string {
   align-items: stretch;
   gap: 12px;
   background: white;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 14px;
   cursor: pointer;
   border: none;
   text-align: left;
   width: 100%;
-  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
-  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: event-slide-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes event-slide-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .event-item:active {
   transform: scale(0.98);
-  background: #f8f8f8;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .event-color-bar {
@@ -669,7 +815,7 @@ function formatEventTime(time: string): string {
 .event-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -677,11 +823,22 @@ function formatEventTime(time: string): string {
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
+  letter-spacing: -0.1px;
 }
 
 .event-time {
   font-size: 13px;
   color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.time-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  opacity: 0.5;
 }
 
 .event-notes {
@@ -690,13 +847,16 @@ function formatEventTime(time: string): string {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-left: 1px;
 }
 
 /* ─── Modal ──────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
   align-items: flex-end;
@@ -707,18 +867,27 @@ function formatEventTime(time: string): string {
   width: 100%;
   max-width: 500px;
   background: var(--color-bg);
-  border-radius: 16px 16px 0 0;
+  border-radius: 20px 20px 0 0;
   max-height: 85vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+}
+
+.modal-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 10px auto 0;
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px 12px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 14px 16px 12px;
+  border-bottom: 0.5px solid var(--color-border);
   position: sticky;
   top: 0;
   background: var(--color-bg);
@@ -736,11 +905,17 @@ function formatEventTime(time: string): string {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-close:active {
+  transform: scale(0.9);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .modal-close svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .modal-title {
@@ -757,6 +932,11 @@ function formatEventTime(time: string): string {
   border: none;
   cursor: pointer;
   padding: 4px 8px;
+  transition: opacity 0.15s ease;
+}
+
+.modal-save:active {
+  opacity: 0.5;
 }
 
 .modal-save:disabled {
@@ -765,10 +945,24 @@ function formatEventTime(time: string): string {
 }
 
 .modal-body {
-  padding: 16px;
+  padding: 20px 16px 32px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.color-dot-large {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 .modal-input {
@@ -777,15 +971,16 @@ function formatEventTime(time: string): string {
   font-family: inherit;
   color: var(--color-text);
   background: white;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
   padding: 12px;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .modal-input:focus {
   border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.08);
 }
 
 .modal-input::placeholder {
@@ -796,14 +991,30 @@ function formatEventTime(time: string): string {
   font-size: 18px;
   font-weight: 600;
   border: none;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 0;
-  padding: 8px 0;
+  padding: 10px 0;
   background: transparent;
+  letter-spacing: -0.2px;
 }
 
 .title-input:focus {
   border-color: #007aff;
+  box-shadow: none;
+}
+
+.modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .modal-row {
@@ -811,6 +1022,13 @@ function formatEventTime(time: string): string {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding: 2px 0;
+}
+
+.modal-divider {
+  height: 0.5px;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 0 0 0 80px;
 }
 
 .modal-label {
@@ -826,66 +1044,91 @@ function formatEventTime(time: string): string {
   background: transparent;
   padding: 4px 0;
   font-size: 15px;
+  font-weight: 500;
+  color: #007aff;
 }
 
 .time-input:focus {
   border: none;
+  box-shadow: none;
 }
 
 .color-picker {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .color-dot {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 3px solid transparent;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.color-dot svg {
+  width: 14px;
+  height: 14px;
 }
 
 .color-dot:active {
-  transform: scale(0.9);
+  transform: scale(0.85);
 }
 
 .color-dot.active {
   border-color: var(--color-text);
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 .notes-input {
   resize: none;
   min-height: 80px;
   font-size: 15px;
+  line-height: 1.5;
 }
 
 .delete-event-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   padding: 14px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #ff3b30;
-  background: none;
+  background: rgba(255, 59, 48, 0.06);
   border: none;
-  border-top: 1px solid var(--color-border);
+  border-radius: 12px;
   cursor: pointer;
-  margin-top: 8px;
-  transition: opacity 0.15s ease;
+  margin-top: 4px;
+  transition: all 0.15s ease;
+}
+
+.delete-event-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .delete-event-btn:active {
-  opacity: 0.5;
+  transform: scale(0.98);
+  background: rgba(255, 59, 48, 0.12);
 }
 
 /* ─── Modal Transition ───────────────────────────────────────── */
 .modal-enter-active {
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .modal-leave-active {
-  transition: all 0.2s ease-in;
+  transition: all 0.25s ease-in;
 }
 
 .modal-enter-from,
@@ -905,11 +1148,15 @@ function formatEventTime(time: string): string {
   }
 
   .day-number {
-    font-size: 17px;
+    font-size: 18px;
   }
 
   .header-title {
-    font-size: 24px;
+    font-size: 32px;
+  }
+
+  .event-item {
+    padding: 16px;
   }
 }
 </style>

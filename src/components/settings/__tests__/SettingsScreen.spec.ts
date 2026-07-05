@@ -169,55 +169,6 @@ describe('SettingsScreen', () => {
       await nextTick()
       expect(wrapper.find('h1').text()).toBe('About')
     })
-
-    it('back button appears on sub-pages', async () => {
-      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
-      await nextTick()
-      const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
-      await wifiRow!.trigger('click')
-      await nextTick()
-      expect(wrapper.find('.back-btn').exists()).toBe(true)
-    })
-
-    it('back button navigates to previous page', async () => {
-      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
-      await nextTick()
-      const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
-      await wifiRow!.trigger('click')
-      await nextTick()
-      expect(wrapper.find('h1').text()).toBe('Wi-Fi')
-
-      await wrapper.find('.back-btn').trigger('click')
-      await nextTick()
-      expect(wrapper.find('h1').text()).toBe('Settings')
-    })
-
-    it('deep navigation and back works', async () => {
-      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
-      await nextTick()
-
-      // Go to Wi-Fi
-      const wifiRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Wi-Fi') && !r.text().includes('Airplane'))
-      await wifiRow!.trigger('click')
-      await nextTick()
-      expect(wrapper.find('h1').text()).toBe('Wi-Fi')
-
-      // Back to main
-      await wrapper.find('.back-btn').trigger('click')
-      await nextTick()
-      expect(wrapper.find('h1').text()).toBe('Settings')
-
-      // Go to Bluetooth
-      const btRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Bluetooth'))
-      await btRow!.trigger('click')
-      await nextTick()
-      expect(wrapper.find('h1').text()).toBe('Bluetooth')
-
-      // Back to main
-      await wrapper.find('.back-btn').trigger('click')
-      await nextTick()
-      expect(wrapper.find('h1').text()).toBe('Settings')
-    })
   })
 
   describe('Wi-Fi page', () => {

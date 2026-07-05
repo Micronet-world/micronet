@@ -181,7 +181,7 @@ describe('CalendarScreen', () => {
     await wrapper.findAll('.nav-btn')[1].trigger('click')
     expect(wrapper.find('.month-label').text()).toBe('February 2025')
 
-    await wrapper.find('.today-btn').trigger('click')
+    await wrapper.find('.today-pill').trigger('click')
     expect(wrapper.find('.month-label').text()).toBe('January 2025')
   })
 
@@ -193,13 +193,7 @@ describe('CalendarScreen', () => {
     await wrapper.find('.modal-save').trigger('click')
     await nextTick()
 
-    expect(wrapper.find('.event-dot').exists()).toBe(true)
-  })
-
-  it('emits go-back on back button click', async () => {
-    const wrapper = mountScreen()
-    await wrapper.find('.back-btn').trigger('click')
-    expect(wrapper.emitted('go-back')).toBeTruthy()
+    expect(wrapper.find('.event-pip').exists()).toBe(true)
   })
 
   it('disables save when title is empty', async () => {
