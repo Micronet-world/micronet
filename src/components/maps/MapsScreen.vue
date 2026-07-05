@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { LMap, LTileLayer, LMarker, LPopup, LControlZoom, LPolyline } from '@vue-leaflet/vue-leaflet'
+import { ref, onMounted, onUnmounted } from 'vue'
+import maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSwipeGestures } from '../../composables/useSwipeGestures'
 
 const emit = defineEmits<{
@@ -15,12 +16,20 @@ const { targetRef, isDragging } =
   })
 
 // ─── Map State ─────────────────────────────────────────────────
-const mapRef = ref<InstanceType<typeof LMap> | null>(null)
-const zoom = ref(15)
-const center = ref<[number, number] | null>(null)
+const mapContainer = ref<HTMLElement | null>(null)
+let map: maplibregl.Map | null = null
+let userMarker: maplibregl.Marker | null = null
 const mapReady = ref(false)
-const currentLayer = ref<'street' | 'satellite'>('street')
 const locationReady = ref(false)
+const currentStyle = ref<'liberty' | 'bright' | 'positron' | 'dark'>('liberty')
+
+// ─── OpenFreeMap Styles ────────────────────────────────────────
+const STYLES: Record<string, string> = {
+  liberty: 'https://tiles.openfreemap.org/styles/liberty',
+  bright: 'https://tiles.openfreemap.org/styles/bright',
+  positron: 'https://tiles.openfreemap.org/styles/positron',
+  dark: 'https://tiles.openfreemap.org/styles/dark',
+}
 
 // ─── Location ──────────────────────────────────────────────────
 const userLocation = ref<[number, number] | null>(null)
@@ -45,6 +54,7 @@ interface Place {
 
 // ─── Markers ───────────────────────────────────────────────────
 const markers = ref<Place[]>([])
+const mapMarkers: maplibregl.Marker[] = []
 const selectedPlace = ref<Place | null>(null)
 
 // ─── Directions ────────────────────────────────────────────────
@@ -67,24 +77,187 @@ const favorites = ref<Place[]>([
 const showBottomSheet = ref(false)
 const bottomSheetContent = ref<'details' | 'favorites' | 'directions'>('details')
 const activeTab = ref<'explore' | 'favorites' | 'directions'>('explore')
+const showStylePicker = ref(false)
 
-// ─── Tile Layers ───────────────────────────────────────────────
-const streetTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-const satelliteTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+// ─── Style Toggle ──────────────────────────────────────────────
+function setMapStyle(style: typeof currentStyle.value) {
+  currentStyle.value = style
+  showStylePicker.value = false
+  if (map) {
+    map.setStyle(STYLES[style])
+    map.once('styledata', () => {
+      // Re-add route layer after style change
+      if (routePoints.value.length > 0) {
+        addRouteToMap()
+      }
+    })
+  }
+}
 
-const currentTileUrl = computed(() =>
-  currentLayer.value === 'satellite' ? satelliteTileUrl : streetTileUrl
-)
+function getStyleName(style: string): string {
+  const names: Record<string, string> = {
+    liberty: 'Liberty',
+    bright: 'Bright',
+    positron: 'Positron',
+    dark: 'Dark',
+  }
+  return names[style] || style
+}
 
-const tileAttribution = computed(() =>
-  currentLayer.value === 'satellite'
-    ? '&copy; Esri'
-    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-)
+// ─── Map Initialization ────────────────────────────────────────
+function initMap(center: [number, number]) {
+  if (!mapContainer.value) return
 
-// ─── Map Ready ─────────────────────────────────────────────────
-function onMapReady() {
-  mapReady.value = true
+  map = new maplibregl.Map({
+    container: mapContainer.value,
+    style: STYLES[currentStyle.value],
+    center: [center[1], center[0]], // MapLibre uses [lng, lat]
+    zoom: 15,
+  })
+
+  map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
+
+  map.on('load', () => {
+    mapReady.value = true
+    // Add route source and layer
+    map!.addSource('route', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: [],
+        },
+      },
+    })
+
+    map!.addLayer({
+      id: 'route',
+      type: 'line',
+      source: 'route',
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#007aff',
+        'line-width': 5,
+        'line-opacity': 0.8,
+      },
+    })
+  })
+}
+
+// ─── Map Helpers ───────────────────────────────────────────────
+function flyToUserLocation() {
+  if (userLocation.value && map) {
+    map.flyTo({ center: [userLocation.value[1], userLocation.value[0]], zoom: 15 })
+  }
+}
+
+function flyToPlace() {
+  if (selectedPlace.value && map) {
+    map.flyTo({ center: [selectedPlace.value.lng, selectedPlace.value.lat], zoom: 17 })
+  }
+}
+
+// ─── Markers ───────────────────────────────────────────────────
+function addUserMarker(lngLat: [number, number]) {
+  if (!map) return
+
+  // Remove existing user marker
+  if (userMarker) {
+    userMarker.remove()
+  }
+
+  // Create custom user location marker
+  const el = document.createElement('div')
+  el.className = 'user-marker'
+  el.innerHTML = `
+    <div class="user-marker-inner">
+      <div class="user-marker-dot"></div>
+      <div class="user-marker-pulse"></div>
+    </div>
+  `
+
+  userMarker = new maplibregl.Marker({ element: el })
+    .setLngLat([lngLat[1], lngLat[0]])
+    .setPopup(
+      new maplibregl.Popup({ offset: 25 })
+        .setHTML('<div class="popup-content"><strong>My Location</strong></div>')
+    )
+    .addTo(map)
+}
+
+function addPlaceMarker(place: Place) {
+  if (!map) return
+
+  const el = document.createElement('div')
+  el.className = 'place-marker'
+  el.innerHTML = `
+    <div class="place-marker-icon">${getPlaceIcon(place.type)}</div>
+  `
+
+  const marker = new maplibregl.Marker({ element: el })
+    .setLngLat([place.lng, place.lat])
+    .setPopup(
+      new maplibregl.Popup({ offset: 25 })
+        .setHTML(`
+          <div class="popup-content">
+            <strong>${place.name}</strong>
+            ${place.address ? `<p>${place.address}</p>` : ''}
+          </div>
+        `)
+    )
+    .addTo(map)
+
+  marker.getElement().addEventListener('click', () => {
+    selectSearchResult(place)
+  })
+
+  mapMarkers.push(marker)
+}
+
+// ─── Route ─────────────────────────────────────────────────────
+function addRouteToMap() {
+  if (!map || routePoints.value.length === 0) return
+
+  const coordinates = routePoints.value.map(p => [p[1], p[0]]) // Convert to [lng, lat]
+
+  const source = map.getSource('route') as maplibregl.GeoJSONSource
+  if (source) {
+    source.setData({
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates,
+      },
+    })
+  }
+
+  // Fit bounds to route
+  const bounds = coordinates.reduce(
+    (bounds, coord) => bounds.extend(coord as maplibregl.LngLatLike),
+    new maplibregl.LngLatBounds()
+  )
+  map.fitBounds(bounds, { padding: 80 })
+}
+
+function clearRoute() {
+  if (!map) return
+  const source = map.getSource('route') as maplibregl.GeoJSONSource
+  if (source) {
+    source.setData({
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: [],
+      },
+    })
+  }
 }
 
 // ─── Location ──────────────────────────────────────────────────
@@ -94,8 +267,6 @@ function getCurrentLocation(): Promise<void> {
       locationError.value = 'Geolocation not supported'
       locationLoading.value = false
       locationReady.value = true
-      // Fall back to a default location
-      center.value = [40.7128, -74.006]
       resolve()
       return
     }
@@ -107,7 +278,6 @@ function getCurrentLocation(): Promise<void> {
       (pos) => {
         const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude]
         userLocation.value = loc
-        center.value = loc
         locationLoading.value = false
         locationReady.value = true
         resolve()
@@ -116,8 +286,6 @@ function getCurrentLocation(): Promise<void> {
         locationError.value = err.message
         locationLoading.value = false
         locationReady.value = true
-        // Fall back to a default location on error
-        center.value = [40.7128, -74.006]
         resolve()
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
@@ -174,7 +342,6 @@ async function performSearch() {
 }
 
 function getSearchViewbox(): string {
-  const map = mapRef.value?.leafletObject
   if (!map) return ''
   const bounds = map.getBounds()
   return `&viewbox=${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}&bounded=0`
@@ -182,14 +349,23 @@ function getSearchViewbox(): string {
 
 function selectSearchResult(place: Place) {
   selectedPlace.value = place
-  center.value = [place.lat, place.lng]
-  zoom.value = 16
   showSearchResults.value = false
   searchQuery.value = place.name
   searchFocused.value = false
 
+  // Add marker if not exists
   if (!markers.value.find(m => m.id === place.id)) {
     markers.value.push(place)
+    addPlaceMarker(place)
+  }
+
+  // Fly to location
+  if (map) {
+    map.flyTo({
+      center: [place.lng, place.lat],
+      zoom: 16,
+      essential: true,
+    })
   }
 
   showBottomSheet.value = true
@@ -238,6 +414,7 @@ async function fetchRoute() {
       routePoints.value = route.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]])
       routeDistance.value = (route.distance / 1000).toFixed(1) + ' km'
       routeDuration.value = Math.round(route.duration / 60) + ' min'
+      addRouteToMap()
     }
   } catch {
     routePoints.value = []
@@ -254,6 +431,7 @@ function clearDirections() {
   routeDistance.value = ''
   routeDuration.value = ''
   showDirectionsPanel.value = false
+  clearRoute()
 }
 
 // ─── Favorites ─────────────────────────────────────────────────
@@ -273,11 +451,6 @@ function isFavorite(place: Place): boolean {
 function selectFavorite(place: Place) {
   selectSearchResult(place)
   activeTab.value = 'explore'
-}
-
-// ─── Map Type ──────────────────────────────────────────────────
-function toggleMapType() {
-  currentLayer.value = currentLayer.value === 'street' ? 'satellite' : 'street'
 }
 
 // ─── Place Details ─────────────────────────────────────────────
@@ -309,6 +482,26 @@ function closeBottomSheet() {
 // ─── Lifecycle ─────────────────────────────────────────────────
 onMounted(async () => {
   await getCurrentLocation()
+
+  const center: [number, number] = userLocation.value || [40.7128, -74.006]
+  initMap(center)
+
+  if (userLocation.value) {
+    // Wait for map to load before adding marker
+    const checkMap = setInterval(() => {
+      if (mapReady.value) {
+        clearInterval(checkMap)
+        addUserMarker(userLocation.value!)
+      }
+    }, 100)
+  }
+})
+
+onUnmounted(() => {
+  if (map) {
+    map.remove()
+    map = null
+  }
 })
 </script>
 
@@ -333,320 +526,282 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Map -->
+    <!-- Map Content -->
     <template v-else>
-      <div class="map-container">
-        <LMap
-          ref="mapRef"
-          v-model:zoom="zoom"
-          :center="center!"
-          :use-global-leaflet="false"
-          class="leaflet-map"
-          @ready="onMapReady"
-          :options="{ zoomControl: false, attributionControl: true }"
-        >
-          <LTileLayer
-            :url="currentTileUrl"
-            :attribution="tileAttribution"
-            layer-type="base"
-            name="Map"
-          />
+      <!-- Map Container -->
+      <div ref="mapContainer" class="map-container"></div>
 
-          <LControlZoom position="bottomright" />
+      <!-- Top Overlay: Search Bar -->
+      <div class="top-overlay">
+        <div class="search-container" :class="{ focused: searchFocused, 'has-results': showSearchResults }">
+          <div class="search-bar">
+            <button class="back-btn" @click="emit('go-back')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+            </button>
+            <div class="search-input-wrapper">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Search for a place"
+                v-model="searchQuery"
+                @input="onSearchInput"
+                @focus="searchFocused = true; showSearchResults = true"
+                @blur="onSearchBlur"
+              />
+              <button v-if="searchQuery" class="search-clear" @click="clearSearch">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="10" fill="rgba(0,0,0,0.15)"/>
+                  <path d="M15.59 7L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z" fill="white"/>
+                </svg>
+              </button>
+            </div>
+          </div>
 
-          <!-- User location marker -->
-          <LMarker
-            v-if="userLocation"
-            :lat-lng="userLocation"
-          >
-            <LPopup>
-              <div class="popup-content">
-                <strong>My Location</strong>
-              </div>
-            </LPopup>
-          </LMarker>
+          <!-- Search Results Dropdown -->
+          <Transition name="dropdown">
+            <div v-if="showSearchResults && searchResults.length > 0" class="search-results">
+              <button
+                v-for="result in searchResults"
+                :key="result.id"
+                class="search-result-item"
+                @mousedown.prevent="selectSearchResult(result)"
+              >
+                <span class="result-icon">{{ getPlaceIcon(result.type) }}</span>
+                <div class="result-info">
+                  <span class="result-name">{{ result.name }}</span>
+                  <span class="result-address">{{ result.address }}</span>
+                </div>
+              </button>
+            </div>
+          </Transition>
 
-          <!-- Search result markers -->
-          <LMarker
-            v-for="marker in markers"
-            :key="marker.id"
-            :lat-lng="[marker.lat, marker.lng]"
-            @click="selectSearchResult(marker)"
-          >
-            <LPopup>
-              <div class="popup-content">
-                <strong>{{ marker.name }}</strong>
-                <p v-if="marker.address">{{ marker.address }}</p>
-              </div>
-            </LPopup>
-          </LMarker>
-
-          <!-- Route polyline -->
-          <LPolyline
-            v-if="routePoints.length > 0"
-            :lat-lngs="routePoints"
-            color="#007aff"
-            :weight="5"
-            :opacity="0.8"
-          />
-        </LMap>
+          <div v-if="showSearchResults && searchLoading" class="search-loading">
+            <div class="loading-spinner"></div>
+            <span>Searching...</span>
+          </div>
+        </div>
       </div>
 
-    <!-- Top Overlay: Search Bar -->
-    <div class="top-overlay">
-      <div class="search-container" :class="{ focused: searchFocused, 'has-results': showSearchResults }">
-        <div class="search-bar">
-          <button class="back-btn" @click="emit('go-back')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M15 18l-6-6 6-6"/>
+      <!-- Map Controls -->
+      <div class="map-controls">
+        <!-- Style Picker -->
+        <div class="style-picker-wrapper">
+          <button
+            class="control-btn"
+            :class="{ active: showStylePicker }"
+            @click="showStylePicker = !showStylePicker"
+            aria-label="Map style"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
             </svg>
           </button>
-          <div class="search-input-wrapper">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input
-              type="text"
-              class="search-input"
-              placeholder="Search for a place"
-              v-model="searchQuery"
-              @input="onSearchInput"
-              @focus="searchFocused = true; showSearchResults = true"
-              @blur="onSearchBlur"
-            />
-            <button v-if="searchQuery" class="search-clear" @click="clearSearch">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="10" fill="rgba(0,0,0,0.15)"/>
-                <path d="M15.59 7L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z" fill="white"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Search Results Dropdown -->
-        <Transition name="dropdown">
-          <div v-if="showSearchResults && searchResults.length > 0" class="search-results">
-            <button
-              v-for="result in searchResults"
-              :key="result.id"
-              class="search-result-item"
-              @mousedown.prevent="selectSearchResult(result)"
-            >
-              <span class="result-icon">{{ getPlaceIcon(result.type) }}</span>
-              <div class="result-info">
-                <span class="result-name">{{ result.name }}</span>
-                <span class="result-address">{{ result.address }}</span>
-              </div>
-            </button>
-          </div>
-        </Transition>
-
-        <div v-if="showSearchResults && searchLoading" class="search-loading">
-          <div class="loading-spinner"></div>
-          <span>Searching...</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Map Controls -->
-    <div class="map-controls">
-      <button
-        class="control-btn"
-        :class="{ active: currentLayer === 'satellite' }"
-        @click="toggleMapType"
-        aria-label="Toggle map type"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-        </svg>
-      </button>
-
-      <button
-        class="control-btn location-btn"
-        :class="{ loading: locationLoading, active: !!userLocation }"
-        @click="getCurrentLocation"
-        aria-label="My location"
-      >
-        <svg v-if="!locationLoading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
-          <circle cx="12" cy="12" r="3"/>
-          <circle cx="12" cy="12" r="8" stroke-dasharray="4 2"/>
-        </svg>
-        <div v-else class="btn-spinner"></div>
-      </button>
-    </div>
-
-    <!-- Tab Bar -->
-    <div class="tab-bar">
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'explore' }"
-        @click="activeTab = 'explore'"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
-        <span>Explore</span>
-      </button>
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'favorites' }"
-        @click="activeTab = 'favorites'; showBottomSheet = true; bottomSheetContent = 'favorites'"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
-        <span>Favorites</span>
-      </button>
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'directions' }"
-        @click="activeTab = 'directions'; showBottomSheet = true; bottomSheetContent = 'directions'"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-        </svg>
-        <span>Directions</span>
-      </button>
-    </div>
-
-    <!-- Bottom Sheet -->
-    <Transition name="sheet">
-      <div v-if="showBottomSheet" class="bottom-sheet-overlay" @click.self="closeBottomSheet">
-        <div class="bottom-sheet">
-          <div class="sheet-handle" @click="closeBottomSheet">
-            <div class="handle-bar"></div>
-          </div>
-
-          <!-- Place Details -->
-          <div v-if="bottomSheetContent === 'details' && selectedPlace" class="sheet-content">
-            <div class="place-header">
-              <span class="place-icon">{{ getPlaceIcon(selectedPlace.type) }}</span>
-              <div class="place-info">
-                <h3>{{ selectedPlace.name }}</h3>
-                <p v-if="selectedPlace.address">{{ selectedPlace.address }}</p>
-              </div>
+          <Transition name="dropdown">
+            <div v-if="showStylePicker" class="style-picker">
               <button
-                class="fav-btn"
-                :class="{ favorited: isFavorite(selectedPlace) }"
-                @click="toggleFavorite(selectedPlace)"
+                v-for="(_, style) in STYLES"
+                :key="style"
+                class="style-option"
+                :class="{ active: currentStyle === style }"
+                @click="setMapStyle(style as typeof currentStyle)"
               >
-                <svg viewBox="0 0 24 24" :fill="isFavorite(selectedPlace) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5">
+                {{ getStyleName(style) }}
+              </button>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Location Button -->
+        <button
+          class="control-btn location-btn"
+          :class="{ loading: locationLoading, active: !!userLocation }"
+          @click="getCurrentLocation().then(flyToUserLocation)"
+          aria-label="My location"
+        >
+          <svg v-if="!locationLoading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+            <circle cx="12" cy="12" r="3"/>
+            <circle cx="12" cy="12" r="8" stroke-dasharray="4 2"/>
+          </svg>
+          <div v-else class="btn-spinner"></div>
+        </button>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'explore' }"
+          @click="activeTab = 'explore'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span>Explore</span>
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'favorites' }"
+          @click="activeTab = 'favorites'; showBottomSheet = true; bottomSheetContent = 'favorites'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          <span>Favorites</span>
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'directions' }"
+          @click="activeTab = 'directions'; showBottomSheet = true; bottomSheetContent = 'directions'"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+          </svg>
+          <span>Directions</span>
+        </button>
+      </div>
+
+      <!-- Bottom Sheet -->
+      <Transition name="sheet">
+        <div v-if="showBottomSheet" class="bottom-sheet-overlay" @click.self="closeBottomSheet">
+          <div class="bottom-sheet">
+            <div class="sheet-handle" @click="closeBottomSheet">
+              <div class="handle-bar"></div>
+            </div>
+
+            <!-- Place Details -->
+            <div v-if="bottomSheetContent === 'details' && selectedPlace" class="sheet-content">
+              <div class="place-header">
+                <span class="place-icon">{{ getPlaceIcon(selectedPlace.type) }}</span>
+                <div class="place-info">
+                  <h3>{{ selectedPlace.name }}</h3>
+                  <p v-if="selectedPlace.address">{{ selectedPlace.address }}</p>
+                </div>
+                <button
+                  class="fav-btn"
+                  :class="{ favorited: isFavorite(selectedPlace) }"
+                  @click="toggleFavorite(selectedPlace)"
+                >
+                  <svg viewBox="0 0 24 24" :fill="isFavorite(selectedPlace) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="place-actions">
+                <button class="action-btn primary" @click="startDirections">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+                  </svg>
+                  <span>Directions</span>
+                </button>
+                <button class="action-btn" @click="flyToPlace">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <span>Zoom In</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Favorites List -->
+            <div v-else-if="bottomSheetContent === 'favorites'" class="sheet-content">
+              <h3 class="sheet-title">Favorites</h3>
+              <div v-if="favorites.length === 0" class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
-              </button>
+                <p>No favorites yet</p>
+                <span>Search for places and tap the heart to save them</span>
+              </div>
+              <div v-else class="favorites-list">
+                <button
+                  v-for="fav in favorites"
+                  :key="fav.id"
+                  class="favorite-item"
+                  @click="selectFavorite(fav)"
+                >
+                  <span class="fav-icon">{{ getPlaceIcon(fav.type) }}</span>
+                  <div class="fav-info">
+                    <span class="fav-name">{{ fav.name }}</span>
+                    <span class="fav-address">{{ fav.address }}</span>
+                  </div>
+                  <svg class="fav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </div>
             </div>
-            <div class="place-actions">
-              <button class="action-btn primary" @click="startDirections">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-                </svg>
-                <span>Directions</span>
-              </button>
-              <button class="action-btn" @click="center = [selectedPlace.lat, selectedPlace.lng]; zoom = 17">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <span>Zoom In</span>
-              </button>
-            </div>
-          </div>
 
-          <!-- Favorites List -->
-          <div v-else-if="bottomSheetContent === 'favorites'" class="sheet-content">
-            <h3 class="sheet-title">Favorites</h3>
-            <div v-if="favorites.length === 0" class="empty-state">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-              <p>No favorites yet</p>
-              <span>Search for places and tap the heart to save them</span>
-            </div>
-            <div v-else class="favorites-list">
-              <button
-                v-for="fav in favorites"
-                :key="fav.id"
-                class="favorite-item"
-                @click="selectFavorite(fav)"
-              >
-                <span class="fav-icon">{{ getPlaceIcon(fav.type) }}</span>
-                <div class="fav-info">
-                  <span class="fav-name">{{ fav.name }}</span>
-                  <span class="fav-address">{{ fav.address }}</span>
+            <!-- Directions Panel -->
+            <div v-else-if="bottomSheetContent === 'directions'" class="sheet-content">
+              <h3 class="sheet-title">Directions</h3>
+              <div class="directions-form">
+                <div class="direction-inputs">
+                  <div class="direction-dot from"></div>
+                  <input
+                    type="text"
+                    class="direction-input"
+                    :value="directionsFrom?.name || ''"
+                    placeholder="My Location"
+                    readonly
+                  />
+                  <button v-if="directionsFrom" class="direction-clear" @click="directionsFrom = null; routePoints = []; clearRoute()">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+                  </button>
                 </div>
-                <svg class="fav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-              </button>
-            </div>
-          </div>
+                <div class="direction-divider"></div>
+                <div class="direction-inputs">
+                  <div class="direction-dot to"></div>
+                  <input
+                    type="text"
+                    class="direction-input"
+                    :value="directionsTo?.name || ''"
+                    placeholder="Choose destination"
+                    readonly
+                  />
+                  <button v-if="directionsTo" class="direction-clear" @click="directionsTo = null; routePoints = []; clearRoute()">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+                  </button>
+                </div>
+              </div>
 
-          <!-- Directions Panel -->
-          <div v-else-if="bottomSheetContent === 'directions'" class="sheet-content">
-            <h3 class="sheet-title">Directions</h3>
-            <div class="directions-form">
-              <div class="direction-inputs">
-                <div class="direction-dot from"></div>
-                <input
-                  type="text"
-                  class="direction-input"
-                  :value="directionsFrom?.name || ''"
-                  placeholder="My Location"
-                  readonly
-                />
-                <button v-if="directionsFrom" class="direction-clear" @click="directionsFrom = null; routePoints = []">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+              <div v-if="routePoints.length > 0" class="route-info">
+                <div class="route-stat">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                  </svg>
+                  <span>{{ routeDuration }}</span>
+                </div>
+                <div class="route-stat">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+                  </svg>
+                  <span>{{ routeDistance }}</span>
+                </div>
+              </div>
+
+              <div v-if="directionsMode && !directionsFrom" class="direction-hint">
+                <p>Select a starting point by searching or using your current location</p>
+                <button class="action-btn primary" @click="getCurrentLocation().then(() => { if (userLocation) directionsFrom = { id: 'user-location', name: 'My Location', address: '', lat: userLocation[0], lng: userLocation[1], type: 'location' } })">
+                  Use My Location
                 </button>
               </div>
-              <div class="direction-divider"></div>
-              <div class="direction-inputs">
-                <div class="direction-dot to"></div>
-                <input
-                  type="text"
-                  class="direction-input"
-                  :value="directionsTo?.name || ''"
-                  placeholder="Choose destination"
-                  readonly
-                />
-                <button v-if="directionsTo" class="direction-clear" @click="directionsTo = null; routePoints = []">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
-                </button>
-              </div>
-            </div>
 
-            <div v-if="routePoints.length > 0" class="route-info">
-              <div class="route-stat">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 6v6l4 2"/>
-                </svg>
-                <span>{{ routeDuration }}</span>
-              </div>
-              <div class="route-stat">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-                </svg>
-                <span>{{ routeDistance }}</span>
-              </div>
-            </div>
-
-            <div v-if="directionsMode && !directionsFrom" class="direction-hint">
-              <p>Select a starting point by searching or using your current location</p>
-              <button class="action-btn primary" @click="getCurrentLocation(); if (userLocation) directionsFrom = { id: 'user-location', name: 'My Location', address: '', lat: userLocation[0], lng: userLocation[1], type: 'location' }">
-                Use My Location
+              <button v-if="directionsMode" class="action-btn danger" @click="clearDirections">
+                Clear Route
               </button>
             </div>
-
-            <button v-if="directionsMode" class="action-btn danger" @click="clearDirections">
-              Clear Route
-            </button>
           </div>
         </div>
-      </div>
-    </Transition>
-
+      </Transition>
     </template>
 
     <!-- Location Error Toast -->
@@ -744,9 +899,100 @@ onMounted(async () => {
   z-index: 0;
 }
 
-.leaflet-map {
-  width: 100%;
-  height: 100%;
+/* ─── User Marker ────────────────────────────────────────────── */
+:deep(.user-marker) {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.user-marker-inner) {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+
+:deep(.user-marker-dot) {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background: #007aff;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+  z-index: 2;
+}
+
+:deep(.user-marker-pulse) {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 122, 255, 0.15);
+  border-radius: 50%;
+  animation: markerPulse 2s ease-in-out infinite;
+}
+
+@keyframes markerPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+}
+
+/* ─── Place Marker ───────────────────────────────────────────── */
+:deep(.place-marker) {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+:deep(.place-marker-icon) {
+  width: 36px;
+  height: 36px;
+  background: white;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+}
+
+:deep(.place-marker-icon) {
+  transform: rotate(0);
+}
+
+/* ─── Popup ──────────────────────────────────────────────────── */
+:deep(.popup-content) {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+}
+
+:deep(.popup-content strong) {
+  display: block;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+:deep(.popup-content p) {
+  font-size: 12px;
+  color: #6b6b6b;
+  margin-top: 2px;
+}
+
+:deep(.maplibregl-popup-content) {
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* ─── Top Overlay ────────────────────────────────────────────── */
@@ -755,7 +1001,7 @@ onMounted(async () => {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 10;
   padding: calc(env(safe-area-inset-top, 12px) + 8px) 16px 12px;
   pointer-events: none;
 }
@@ -943,15 +1189,6 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #007aff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
 .btn-spinner {
   width: 18px;
   height: 18px;
@@ -961,19 +1198,53 @@ onMounted(async () => {
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 /* ─── Map Controls ───────────────────────────────────────────── */
 .map-controls {
   position: absolute;
   right: 16px;
   bottom: 140px;
-  z-index: 1000;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.style-picker-wrapper {
+  position: relative;
+}
+
+.style-picker {
+  position: absolute;
+  right: 52px;
+  top: 0;
+  background: white;
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 100px;
+}
+
+.style-option {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #1a1a1a;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.style-option:active {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.style-option.active {
+  color: #007aff;
+  font-weight: 500;
 }
 
 .control-btn {
@@ -1016,7 +1287,7 @@ onMounted(async () => {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 10;
   display: flex;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px);
@@ -1057,7 +1328,7 @@ onMounted(async () => {
 .bottom-sheet-overlay {
   position: absolute;
   inset: 0;
-  z-index: 1001;
+  z-index: 11;
   background: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: flex-end;
@@ -1422,7 +1693,7 @@ onMounted(async () => {
   top: calc(env(safe-area-inset-top, 12px) + 80px);
   left: 16px;
   right: 16px;
-  z-index: 1002;
+  z-index: 12;
   background: white;
   border-radius: 12px;
   padding: 12px 16px;
@@ -1460,23 +1731,6 @@ onMounted(async () => {
 .error-toast button svg {
   width: 16px;
   height: 16px;
-}
-
-/* ─── Popup ──────────────────────────────────────────────────── */
-.popup-content {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-}
-
-.popup-content strong {
-  display: block;
-  font-size: 14px;
-  color: #1a1a1a;
-}
-
-.popup-content p {
-  font-size: 12px;
-  color: #6b6b6b;
-  margin-top: 2px;
 }
 
 /* ─── Transitions ────────────────────────────────────────────── */
