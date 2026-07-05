@@ -72,6 +72,19 @@ describe('App Integration', () => {
     expect(wrapper.find('.lock-screen').exists()).toBe(false)
   })
 
+  it('swiping up from settings goes to home screen', async () => {
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
+
+    await swipeUp(wrapper, '.lock-screen')
+    await findAppIcon(wrapper, 'Settings')!.trigger('click')
+    await nextTick()
+
+    await swipeUp(wrapper, '.settings-screen')
+
+    expect(wrapper.find('.settings-screen').exists()).toBe(false)
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
+  })
+
   it('swiping down from settings goes to lock screen', async () => {
     const wrapper = mount(App, { global: { plugins: [i18n] } })
 

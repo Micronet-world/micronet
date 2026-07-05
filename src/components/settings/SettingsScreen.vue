@@ -29,7 +29,7 @@ let navigateBackFn: () => void
 const { targetRef, dragProgress, swipeDirection, isDragging } =
   useSwipeGestures({
     onSwipeDown: () => emit('go-lock'),
-    onSwipeUp: () => emit('go-lock'),
+    onSwipeUp: () => emit('go-home'),
     onSwipeRight: () => {
       if (navigateBackFn) navigateBackFn()
     },

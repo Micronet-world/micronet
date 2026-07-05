@@ -386,6 +386,17 @@ describe('SettingsScreen', () => {
       expect(wrapper.emitted('go-lock')).toHaveLength(1)
     })
 
+    it('emits go-home on upward swipe > 80px', async () => {
+      const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
+      const screen = wrapper.find('.settings-screen')
+
+      await screen.trigger('mousedown', { clientY: 300 })
+      window.dispatchEvent(new MouseEvent('mousemove', { clientY: 200 }))
+      window.dispatchEvent(new MouseEvent('mouseup'))
+
+      expect(wrapper.emitted('go-home')).toHaveLength(1)
+    })
+
     it('does NOT emit on short swipe', async () => {
       const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
       const screen = wrapper.find('.settings-screen')
@@ -395,6 +406,7 @@ describe('SettingsScreen', () => {
       window.dispatchEvent(new MouseEvent('mouseup'))
 
       expect(wrapper.emitted('go-lock')).toBeUndefined()
+      expect(wrapper.emitted('go-home')).toBeUndefined()
     })
   })
 
