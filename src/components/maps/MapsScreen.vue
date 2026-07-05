@@ -16,14 +16,15 @@ const { targetRef, isDragging } =
 
 // ─── Map State ─────────────────────────────────────────────────
 const mapRef = ref<InstanceType<typeof LMap> | null>(null)
-const zoom = ref(13)
-const center = ref<[number, number]>([40.7128, -74.006]) // NYC default
+const zoom = ref(15)
+const center = ref<[number, number] | null>(null)
 const mapReady = ref(false)
 const currentLayer = ref<'street' | 'satellite'>('street')
+const locationReady = ref(false)
 
 // ─── Location ──────────────────────────────────────────────────
 const userLocation = ref<[number, number] | null>(null)
-const locationLoading = ref(false)
+const locationLoading = ref(true)
 const locationError = ref('')
 
 // ─── Search ────────────────────────────────────────────────────
@@ -87,29 +88,41 @@ function onMapReady() {
 }
 
 // ─── Location ──────────────────────────────────────────────────
-function getCurrentLocation() {
-  if (!('geolocation' in navigator)) {
-    locationError.value = 'Geolocation not supported'
-    return
-  }
-
-  locationLoading.value = true
-  locationError.value = ''
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude]
-      userLocation.value = loc
-      center.value = loc
-      zoom.value = 15
+function getCurrentLocation(): Promise<void> {
+  return new Promise((resolve) => {
+    if (!('geolocation' in navigator)) {
+      locationError.value = 'Geolocation not supported'
       locationLoading.value = false
-    },
-    (err) => {
-      locationError.value = err.message
-      locationLoading.value = false
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-  )
+      locationReady.value = true
+      // Fall back to a default location
+      center.value = [40.7128, -74.006]
+      resolve()
+      return
+    }
+
+    locationLoading.value = true
+    locationError.value = ''
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const loc: [number, number] = [pos.coords.latitude, pos.coords.longitude]
+        userLocation.value = loc
+        center.value = loc
+        locationLoading.value = false
+        locationReady.value = true
+        resolve()
+      },
+      (err) => {
+        locationError.value = err.message
+        locationLoading.value = false
+        locationReady.value = true
+        // Fall back to a default location on error
+        center.value = [40.7128, -74.006]
+        resolve()
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    )
+  })
 }
 
 // ─── Search ────────────────────────────────────────────────────
@@ -294,8 +307,8 @@ function closeBottomSheet() {
 }
 
 // ─── Lifecycle ─────────────────────────────────────────────────
-onMounted(() => {
-  getCurrentLocation()
+onMounted(async () => {
+  await getCurrentLocation()
 })
 </script>
 
@@ -305,63 +318,79 @@ onMounted(() => {
     class="maps-screen"
     :class="{ dragging: isDragging }"
   >
-    <!-- Map -->
-    <div class="map-container">
-      <LMap
-        ref="mapRef"
-        v-model:zoom="zoom"
-        v-model:center="center"
-        :use-global-leaflet="false"
-        class="leaflet-map"
-        @ready="onMapReady"
-        :options="{ zoomControl: false, attributionControl: true }"
-      >
-        <LTileLayer
-          :url="currentTileUrl"
-          :attribution="tileAttribution"
-          layer-type="base"
-          name="Map"
-        />
-
-        <LControlZoom position="bottomright" />
-
-        <!-- User location marker -->
-        <LMarker
-          v-if="userLocation"
-          :lat-lng="userLocation"
-        >
-          <LPopup>
-            <div class="popup-content">
-              <strong>My Location</strong>
-            </div>
-          </LPopup>
-        </LMarker>
-
-        <!-- Search result markers -->
-        <LMarker
-          v-for="marker in markers"
-          :key="marker.id"
-          :lat-lng="[marker.lat, marker.lng]"
-          @click="selectSearchResult(marker)"
-        >
-          <LPopup>
-            <div class="popup-content">
-              <strong>{{ marker.name }}</strong>
-              <p v-if="marker.address">{{ marker.address }}</p>
-            </div>
-          </LPopup>
-        </LMarker>
-
-        <!-- Route polyline -->
-        <LPolyline
-          v-if="routePoints.length > 0"
-          :lat-lngs="routePoints"
-          color="#007aff"
-          :weight="5"
-          :opacity="0.8"
-        />
-      </LMap>
+    <!-- Location Loading State -->
+    <div v-if="!locationReady" class="location-loading">
+      <div class="loading-content">
+        <div class="loading-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </div>
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Finding your location...</p>
+        <span class="loading-hint">We need your location to show the map</span>
+      </div>
     </div>
+
+    <!-- Map -->
+    <template v-else>
+      <div class="map-container">
+        <LMap
+          ref="mapRef"
+          v-model:zoom="zoom"
+          :center="center!"
+          :use-global-leaflet="false"
+          class="leaflet-map"
+          @ready="onMapReady"
+          :options="{ zoomControl: false, attributionControl: true }"
+        >
+          <LTileLayer
+            :url="currentTileUrl"
+            :attribution="tileAttribution"
+            layer-type="base"
+            name="Map"
+          />
+
+          <LControlZoom position="bottomright" />
+
+          <!-- User location marker -->
+          <LMarker
+            v-if="userLocation"
+            :lat-lng="userLocation"
+          >
+            <LPopup>
+              <div class="popup-content">
+                <strong>My Location</strong>
+              </div>
+            </LPopup>
+          </LMarker>
+
+          <!-- Search result markers -->
+          <LMarker
+            v-for="marker in markers"
+            :key="marker.id"
+            :lat-lng="[marker.lat, marker.lng]"
+            @click="selectSearchResult(marker)"
+          >
+            <LPopup>
+              <div class="popup-content">
+                <strong>{{ marker.name }}</strong>
+                <p v-if="marker.address">{{ marker.address }}</p>
+              </div>
+            </LPopup>
+          </LMarker>
+
+          <!-- Route polyline -->
+          <LPolyline
+            v-if="routePoints.length > 0"
+            :lat-lngs="routePoints"
+            color="#007aff"
+            :weight="5"
+            :opacity="0.8"
+          />
+        </LMap>
+      </div>
 
     <!-- Top Overlay: Search Bar -->
     <div class="top-overlay">
@@ -618,6 +647,8 @@ onMounted(() => {
       </div>
     </Transition>
 
+    </template>
+
     <!-- Location Error Toast -->
     <Transition name="toast">
       <div v-if="locationError" class="error-toast">
@@ -642,6 +673,68 @@ onMounted(() => {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* ─── Location Loading ───────────────────────────────────────── */
+.location-loading {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #f5f3ef 0%, #eae7e2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px;
+  text-align: center;
+}
+
+.loading-icon {
+  width: 64px;
+  height: 64px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.loading-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(0, 0, 0, 0.08);
+  border-top-color: #007aff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.loading-hint {
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }
 
 /* ─── Map ────────────────────────────────────────────────────── */
