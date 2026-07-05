@@ -187,23 +187,23 @@ const { targetRef: barTargetRef } =
 }
 
 .camera-icon {
-  background: linear-gradient(135deg, #e6e2dc 0%, #d8d3cc 100%);
-  color: #5a5650;
-}
-
-.photos-icon {
-  background: linear-gradient(135deg, #e2ddd6 0%, #d4cec6 100%);
+  background: linear-gradient(135deg, #f0ece7 0%, #e4dfd9 100%);
   color: #6b6560;
 }
 
+.photos-icon {
+  background: linear-gradient(135deg, #ede9e3 0%, #e0dbd4 100%);
+  color: #7a7470;
+}
+
 .maps-icon {
-  background: linear-gradient(135deg, #d4e6f9 0%, #b8d4f0 100%);
-  color: #2d6da8;
+  background: linear-gradient(135deg, #eae6e0 0%, #ddd8d1 100%);
+  color: #68635e;
 }
 
 .settings-icon {
-  background: linear-gradient(135deg, #e8e6e1 0%, #d5d2cb 100%);
-  color: #4a4744;
+  background: linear-gradient(135deg, #f2efe9 0%, #e5e1db 100%);
+  color: #5c5854;
 }
 
 .icon-wrapper svg {
