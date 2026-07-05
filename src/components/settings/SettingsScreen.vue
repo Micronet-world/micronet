@@ -2,6 +2,8 @@
 import StatusBar from '../StatusBar.vue'
 import { ref, computed } from 'vue'
 import { useSwipeGestures } from '../../composables/useSwipeGestures'
+import { useBluetooth } from '../../composables/useBluetooth'
+import type { BTDevice, BTCharacteristic } from '../../composables/useBluetooth'
 
 const emit = defineEmits<{
   'go-lock': []
@@ -44,7 +46,7 @@ const brightness = ref(60)
 const fontSize = ref<'small' | 'default' | 'large'>('default')
 
 // --- Navigation ---
-type Page = 'main' | 'wifi' | 'bluetooth' | 'display' | 'notifications' | 'privacy' | 'about'
+type Page = 'main' | 'wifi' | 'bluetooth' | 'bluetooth-device' | 'display' | 'notifications' | 'privacy' | 'about'
 const currentPage = ref<Page>('main')
 const pageHistory = ref<Page[]>([])
 const pageDirection = ref<'forward' | 'back'>('forward')
@@ -113,11 +115,136 @@ const wifiNetworks = [
 ]
 
 // --- Bluetooth ---
-const bluetoothDevices = [
-  { name: 'AirPods Pro', connected: true, type: 'headphones' as const },
-  { name: 'Car Audio', connected: false, type: 'car' as const },
-  { name: 'Smart Watch', connected: true, type: 'watch' as const },
-]
+const {
+  isSupported: btSupported,
+  isScanning: btScanning,
+  pairedDevices: btPaired,
+  discoveredDevices: btDiscovered,
+  selectedDevice: btSelectedDevice,
+  error: btError,
+  requestDevice: btRequestDevice,
+  connect: btConnect,
+  disconnect: btDisconnect,
+  discoverServices: btDiscoverServices,
+  readCharacteristic: btReadChar,
+  writeCharacteristic: btWriteChar,
+  startNotifications: btStartNotify,
+  stopNotifications: btStopNotify,
+  removeDevice: btRemoveDevice,
+  selectDevice: btSelectDevice,
+} = useBluetooth()
+
+// Characteristic detail state
+const selectedChar = ref<BTCharacteristic | null>(null)
+const charValue = ref<string>('')
+const charWriteInput = ref('')
+const charNotifying = ref(false)
+const btActionLoading = ref(false)
+
+async function handleScan() {
+  const dev = await btRequestDevice()
+  if (dev) {
+    await btConnect(dev)
+    btSelectDevice(dev)
+    selectedChar.value = null
+    charValue.value = ''
+    navigateTo('bluetooth-device')
+  }
+}
+
+async function handleDeviceTap(dev: BTDevice) {
+  btSelectDevice(dev)
+  selectedChar.value = null
+  charValue.value = ''
+
+  if (dev.connected) {
+    await btDiscoverServices(dev)
+    navigateTo('bluetooth-device')
+  } else {
+    await btConnect(dev)
+    if (dev.connected) {
+      await btDiscoverServices(dev)
+      navigateTo('bluetooth-device')
+    }
+  }
+}
+
+async function handleDisconnect() {
+  if (btSelectedDevice.value) {
+    await btDisconnect(btSelectedDevice.value)
+  }
+}
+
+async function handleForgetDevice() {
+  if (btSelectedDevice.value) {
+    btRemoveDevice(btSelectedDevice.value)
+    navigateBack()
+  }
+}
+
+async function handleReadChar(char: BTCharacteristic) {
+  if (!btSelectedDevice.value) return
+  btActionLoading.value = true
+  const val = await btReadChar(btSelectedDevice.value, char)
+  if (val) {
+    charValue.value = formatDataView(val)
+    selectedChar.value = char
+  }
+  btActionLoading.value = false
+}
+
+async function handleToggleNotify(char: BTCharacteristic) {
+  if (!btSelectedDevice.value) return
+  btActionLoading.value = true
+  if (char.notifying) {
+    await btStopNotify(btSelectedDevice.value, char)
+    charNotifying.value = false
+  } else {
+    await btStartNotify(btSelectedDevice.value, char, (val) => {
+      charValue.value = formatDataView(val)
+    })
+    charNotifying.value = true
+  }
+  btActionLoading.value = false
+}
+
+async function handleWriteChar(char: BTCharacteristic) {
+  if (!btSelectedDevice.value || !charWriteInput.value) return
+  btActionLoading.value = true
+  const encoder = new TextEncoder()
+  const data = encoder.encode(charWriteInput.value).buffer
+  await btWriteChar(btSelectedDevice.value, char, data)
+  btActionLoading.value = false
+  charWriteInput.value = ''
+}
+
+function handleCharTap(char: BTCharacteristic) {
+  selectedChar.value = char
+  charValue.value = ''
+  charWriteInput.value = ''
+}
+
+function formatDataView(dv: DataView): string {
+  const bytes = Array.from(new Uint8Array(dv.buffer))
+  const hex = bytes.map(b => b.toString(16).padStart(2, '0')).join(' ')
+  const ascii = bytes.map(b => (b >= 32 && b < 127) ? String.fromCharCode(b) : '.').join('')
+  return `${hex}\n${ascii}`
+}
+
+function formatCharProps(char: BTCharacteristic): string {
+  const props: string[] = []
+  if (char.properties.read) props.push('Read')
+  if (char.properties.write) props.push('Write')
+  if (char.properties.writeWithoutResponse) props.push('WriteNoResp')
+  if (char.properties.notify) props.push('Notify')
+  if (char.properties.indicate) props.push('Indicate')
+  return props.join(', ')
+}
+
+const unpairedDiscovered = computed(() => {
+  const pairedIds = new Set(btPaired.value.map(d => d.id))
+  return btDiscovered.value.filter(d => !pairedIds.has(d.id))
+})
 
 // --- About ---
 const deviceInfo = {
@@ -367,28 +494,157 @@ const deviceInfo = {
               </div>
             </div>
             <template v-if="bluetoothEnabled">
-              <div class="group-header">My Devices</div>
+              <!-- Scan button -->
               <div class="settings-group">
-                <div v-for="(device, i) in bluetoothDevices" :key="device.name" class="settings-row" :style="{ animationDelay: `${i * 60}ms` }">
+                <div class="settings-row" @click="handleScan" :class="{ disabled: btScanning || !btSupported }">
                   <div class="row-icon-small">
-                    <svg v-if="device.type === 'headphones'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-                      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-                    </svg>
-                    <svg v-else-if="device.type === 'car'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h3"/>
-                      <circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/>
-                    </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/>
+                      <path d="M5 19.5C5.5 18 6 15 6 12c0-.7.12-1.37.34-2"/>
+                      <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/>
+                      <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/>
+                      <path d="M8.65 22c.21-.66.45-1.32.57-2"/>
+                      <path d="M14 13.12c0 2.38 0 6.38-1 8.88"/>
+                      <path d="M2 16h.01"/>
+                      <path d="M21.8 16c.2-2 .131-5.354 0-6"/>
+                      <path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2"/>
                     </svg>
                   </div>
-                  <span class="row-label">{{ device.name }}</span>
-                  <span class="row-value" :class="{ connected: device.connected }">
-                    <span v-if="device.connected" class="connected-dot"></span>
-                    {{ device.connected ? 'Connected' : 'Not Connected' }}
+                  <span class="row-label">{{ btScanning ? 'Scanning...' : 'Scan for Devices' }}</span>
+                  <span v-if="btScanning" class="row-value">
+                    <span class="spinner"></span>
+                  </span>
+                  <svg v-else class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              </div>
+
+              <!-- Error message -->
+              <div v-if="btError" class="bt-error">{{ btError }}</div>
+
+              <!-- Not supported warning -->
+              <div v-if="!btSupported" class="bt-warning">
+                Web Bluetooth is not supported in this browser. Use Chrome or Edge on desktop or Android.
+              </div>
+
+              <!-- Paired Devices -->
+              <template v-if="btPaired.length > 0">
+                <div class="group-header">My Devices</div>
+                <div class="settings-group">
+                  <div v-for="(device, i) in btPaired" :key="device.id" class="settings-row" :style="{ animationDelay: `${i * 60}ms` }" @click="handleDeviceTap(device)">
+                    <div class="row-icon-small">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/>
+                      </svg>
+                    </div>
+                    <span class="row-label">{{ device.name }}</span>
+                    <span class="row-value" :class="{ connected: device.connected }">
+                      <span v-if="device.connected" class="connected-dot"></span>
+                      {{ device.connected ? 'Connected' : 'Not Connected' }}
+                    </span>
+                    <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Discovered Devices (not in paired) -->
+              <template v-if="unpairedDiscovered.length > 0">
+                <div class="group-header">Other Devices</div>
+                <div class="settings-group">
+                  <div v-for="(device, i) in unpairedDiscovered" :key="device.id" class="settings-row" :style="{ animationDelay: `${i * 60}ms` }" @click="handleDeviceTap(device)">
+                    <div class="row-icon-small">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/>
+                      </svg>
+                    </div>
+                    <span class="row-label">{{ device.name }}</span>
+                    <span class="row-value">{{ device.connected ? 'Connected' : '' }}</span>
+                    <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Empty state when no devices -->
+              <div v-if="btPaired.length === 0 && unpairedDiscovered.length === 0 && !btScanning" class="bt-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/>
+                </svg>
+                <p>No Devices</p>
+                <span>Tap "Scan for Devices" to find nearby Bluetooth devices.</span>
+              </div>
+            </template>
+          </div>
+
+          <!-- Bluetooth Device Detail page -->
+          <div v-else-if="currentPage === 'bluetooth-device'" key="bluetooth-device" class="page">
+            <template v-if="btSelectedDevice">
+              <!-- Connection status -->
+              <div class="settings-group">
+                <div class="settings-row">
+                  <span class="row-label">{{ btSelectedDevice.name }}</span>
+                  <span class="row-value" :class="{ connected: btSelectedDevice.connected }">
+                    <span v-if="btSelectedDevice.connected" class="connected-dot"></span>
+                    {{ btSelectedDevice.connected ? 'Connected' : 'Disconnected' }}
                   </span>
                 </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="settings-group">
+                <div v-if="btSelectedDevice.connected" class="settings-row" @click="handleDisconnect">
+                  <span class="row-label" style="color: #ff3b30">Disconnect</span>
+                </div>
+                <div v-else class="settings-row" @click="handleDeviceTap(btSelectedDevice)">
+                  <span class="row-label" style="color: #007aff">Connect</span>
+                </div>
+                <div class="settings-row" @click="handleForgetDevice">
+                  <span class="row-label" style="color: #ff3b30">Forget This Device</span>
+                </div>
+              </div>
+
+              <!-- Services -->
+              <template v-if="btSelectedDevice.connected && btSelectedDevice.services.length > 0">
+                <template v-for="service in btSelectedDevice.services" :key="service.uuid">
+                  <div class="group-header">{{ service.name }}</div>
+                  <div class="settings-group">
+                    <div v-for="char in service.characteristics" :key="char.uuid"
+                      class="settings-row column"
+                      :class="{ 'char-selected': selectedChar?.uuid === char.uuid }"
+                      @click="handleCharTap(char)">
+                      <div class="char-header">
+                        <span class="row-label char-name">{{ char.name }}</span>
+                        <span class="char-props">{{ formatCharProps(char) }}</span>
+                      </div>
+                      <div class="char-uuid">{{ char.uuid }}</div>
+                      <div v-if="selectedChar?.uuid === char.uuid" class="char-actions">
+                        <!-- Read button -->
+                        <button v-if="char.properties.read" class="char-btn" @click.stop="handleReadChar(char)" :disabled="btActionLoading">
+                          Read
+                        </button>
+                        <!-- Notify toggle -->
+                        <button v-if="char.properties.notify || char.properties.indicate" class="char-btn" :class="{ active: char.notifying }" @click.stop="handleToggleNotify(char)" :disabled="btActionLoading">
+                          {{ char.notifying ? 'Stop Notify' : 'Notify' }}
+                        </button>
+                        <!-- Write input -->
+                        <div v-if="char.properties.write || char.properties.writeWithoutResponse" class="char-write">
+                          <input type="text" v-model="charWriteInput" placeholder="Value to write" class="char-write-input" @click.stop />
+                          <button class="char-btn" @click.stop="handleWriteChar(char)" :disabled="btActionLoading || !charWriteInput">
+                            Write
+                          </button>
+                        </div>
+                        <!-- Value display -->
+                        <div v-if="charValue" class="char-value">
+                          <pre>{{ charValue }}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </template>
+
+              <!-- Loading state -->
+              <div v-if="btSelectedDevice.connected && btSelectedDevice.services.length === 0" class="bt-empty">
+                <span class="spinner"></span>
+                <p>Discovering services...</p>
               </div>
             </template>
           </div>
@@ -1199,6 +1455,190 @@ const deviceInfo = {
 
 @keyframes storage-fill {
   from { width: 0% !important; }
+}
+
+/* === Bluetooth === */
+.bt-error {
+  margin: 0 16px 16px;
+  padding: 12px 16px;
+  background: rgba(255, 59, 48, 0.08);
+  border-radius: 10px;
+  color: #ff3b30;
+  font-size: 14px;
+  animation: group-enter 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.bt-warning {
+  margin: 0 16px 16px;
+  padding: 12px 16px;
+  background: rgba(255, 149, 0, 0.08);
+  border-radius: 10px;
+  color: #ff9500;
+  font-size: 14px;
+  animation: group-enter 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.bt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  gap: 8px;
+}
+
+.bt-empty svg {
+  width: 36px;
+  height: 36px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.bt-empty p {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.bt-empty span {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #007aff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.settings-row.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* === Characteristic detail === */
+.char-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+}
+
+.char-name {
+  font-size: 15px !important;
+  flex: 1;
+}
+
+.char-props {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.char-uuid {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-family: 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+  width: 100%;
+}
+
+.char-selected {
+  background: rgba(0, 122, 255, 0.03);
+}
+
+.char-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding-top: 4px;
+  animation: row-enter 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.char-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #007aff;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  align-self: flex-start;
+}
+
+.char-btn:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.char-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.char-btn.active {
+  background: #ff3b30;
+}
+
+.char-write {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.char-write-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  background: white;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.char-write-input:focus {
+  border-color: #007aff;
+}
+
+.char-value {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  padding: 10px 12px;
+  animation: row-enter 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.char-value pre {
+  margin: 0;
+  font-size: 12px;
+  font-family: 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
 }
 
 /* === Responsive === */

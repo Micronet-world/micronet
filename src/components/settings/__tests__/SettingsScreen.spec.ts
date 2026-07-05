@@ -268,7 +268,7 @@ describe('SettingsScreen', () => {
       expect(toggles.length).toBeGreaterThan(0)
     })
 
-    it('shows device list when Bluetooth enabled', async () => {
+    it('shows scan button when Bluetooth enabled', async () => {
       const wrapper = mount(SettingsScreen)
       await nextTick()
       const btRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Bluetooth'))
@@ -276,20 +276,18 @@ describe('SettingsScreen', () => {
       await nextTick()
 
       const labels = wrapper.findAll('.row-label').map(l => l.text())
-      expect(labels).toContain('AirPods Pro')
-      expect(labels).toContain('Car Audio')
-      expect(labels).toContain('Smart Watch')
+      expect(labels).toContain('Scan for Devices')
     })
 
-    it('shows connected status for devices', async () => {
+    it('shows empty state when no devices paired', async () => {
       const wrapper = mount(SettingsScreen)
       await nextTick()
       const btRow = wrapper.findAll('.settings-row').find(r => r.text().includes('Bluetooth'))
       await btRow!.trigger('click')
       await nextTick()
 
-      const values = wrapper.findAll('.row-value').map(v => v.text())
-      expect(values.some(v => v.includes('Connected'))).toBe(true)
+      expect(wrapper.find('.bt-empty').exists()).toBe(true)
+      expect(wrapper.find('.bt-empty p').text()).toBe('No Devices')
     })
   })
 
