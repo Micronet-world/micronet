@@ -19,9 +19,9 @@ const { targetRef, isDragging } =
 const mapContainer = ref<HTMLElement | null>(null)
 let map: maplibregl.Map | null = null
 let userMarker: maplibregl.Marker | null = null
-const mapReady = ref(false)
 const locationReady = ref(false)
 const currentStyle = ref<'liberty' | 'bright' | 'positron' | 'dark'>('liberty')
+const showStylePicker = ref(false)
 
 // ─── OpenFreeMap Styles ────────────────────────────────────────
 const STYLES: Record<string, string> = {
@@ -36,61 +36,12 @@ const userLocation = ref<[number, number] | null>(null)
 const locationLoading = ref(true)
 const locationError = ref('')
 
-// ─── Search ────────────────────────────────────────────────────
-const searchQuery = ref('')
-const searchResults = ref<Place[]>([])
-const searchLoading = ref(false)
-const showSearchResults = ref(false)
-const searchFocused = ref(false)
-
-interface Place {
-  id: string
-  name: string
-  address: string
-  lat: number
-  lng: number
-  type: string
-}
-
-// ─── Markers ───────────────────────────────────────────────────
-const markers = ref<Place[]>([])
-const mapMarkers: maplibregl.Marker[] = []
-const selectedPlace = ref<Place | null>(null)
-
-// ─── Directions ────────────────────────────────────────────────
-const directionsMode = ref(false)
-const directionsFrom = ref<Place | null>(null)
-const directionsTo = ref<Place | null>(null)
-const routePoints = ref<[number, number][]>([])
-const routeDistance = ref('')
-const routeDuration = ref('')
-const showDirectionsPanel = ref(false)
-
-// ─── Favorites ─────────────────────────────────────────────────
-const favorites = ref<Place[]>([
-  { id: 'fav1', name: 'Central Park', address: 'New York, NY', lat: 40.7829, lng: -73.9654, type: 'park' },
-  { id: 'fav2', name: 'Times Square', address: 'Manhattan, NY', lat: 40.7580, lng: -73.9855, type: 'landmark' },
-  { id: 'fav3', name: 'Brooklyn Bridge', address: 'New York, NY', lat: 40.7061, lng: -73.9969, type: 'landmark' },
-])
-
-// ─── UI State ──────────────────────────────────────────────────
-const showBottomSheet = ref(false)
-const bottomSheetContent = ref<'details' | 'favorites' | 'directions'>('details')
-const activeTab = ref<'explore' | 'favorites' | 'directions'>('explore')
-const showStylePicker = ref(false)
-
 // ─── Style Toggle ──────────────────────────────────────────────
 function setMapStyle(style: typeof currentStyle.value) {
   currentStyle.value = style
   showStylePicker.value = false
   if (map) {
     map.setStyle(STYLES[style])
-    map.once('styledata', () => {
-      // Re-add route layer after style change
-      if (routePoints.value.length > 0) {
-        addRouteToMap()
-      }
-    })
   }
 }
 
@@ -116,62 +67,15 @@ function initMap(center: [number, number]) {
   })
 
   map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
-
-  map.on('load', () => {
-    mapReady.value = true
-    // Add route source and layer
-    map!.addSource('route', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: [],
-        },
-      },
-    })
-
-    map!.addLayer({
-      id: 'route',
-      type: 'line',
-      source: 'route',
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round',
-      },
-      paint: {
-        'line-color': '#007aff',
-        'line-width': 5,
-        'line-opacity': 0.8,
-      },
-    })
-  })
 }
 
-// ─── Map Helpers ───────────────────────────────────────────────
-function flyToUserLocation() {
-  if (userLocation.value && map) {
-    map.flyTo({ center: [userLocation.value[1], userLocation.value[0]], zoom: 15 })
-  }
-}
-
-function flyToPlace() {
-  if (selectedPlace.value && map) {
-    map.flyTo({ center: [selectedPlace.value.lng, selectedPlace.value.lat], zoom: 17 })
-  }
-}
-
-// ─── Markers ───────────────────────────────────────────────────
 function addUserMarker(lngLat: [number, number]) {
   if (!map) return
 
-  // Remove existing user marker
   if (userMarker) {
     userMarker.remove()
   }
 
-  // Create custom user location marker
   const el = document.createElement('div')
   el.className = 'user-marker'
   el.innerHTML = `
@@ -183,81 +87,7 @@ function addUserMarker(lngLat: [number, number]) {
 
   userMarker = new maplibregl.Marker({ element: el })
     .setLngLat([lngLat[1], lngLat[0]])
-    .setPopup(
-      new maplibregl.Popup({ offset: 25 })
-        .setHTML('<div class="popup-content"><strong>My Location</strong></div>')
-    )
     .addTo(map)
-}
-
-function addPlaceMarker(place: Place) {
-  if (!map) return
-
-  const el = document.createElement('div')
-  el.className = 'place-marker'
-  el.innerHTML = `
-    <div class="place-marker-icon">${getPlaceIcon(place.type)}</div>
-  `
-
-  const marker = new maplibregl.Marker({ element: el })
-    .setLngLat([place.lng, place.lat])
-    .setPopup(
-      new maplibregl.Popup({ offset: 25 })
-        .setHTML(`
-          <div class="popup-content">
-            <strong>${place.name}</strong>
-            ${place.address ? `<p>${place.address}</p>` : ''}
-          </div>
-        `)
-    )
-    .addTo(map)
-
-  marker.getElement().addEventListener('click', () => {
-    selectSearchResult(place)
-  })
-
-  mapMarkers.push(marker)
-}
-
-// ─── Route ─────────────────────────────────────────────────────
-function addRouteToMap() {
-  if (!map || routePoints.value.length === 0) return
-
-  const coordinates = routePoints.value.map(p => [p[1], p[0]]) // Convert to [lng, lat]
-
-  const source = map.getSource('route') as maplibregl.GeoJSONSource
-  if (source) {
-    source.setData({
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates,
-      },
-    })
-  }
-
-  // Fit bounds to route
-  const bounds = coordinates.reduce(
-    (bounds, coord) => bounds.extend(coord as maplibregl.LngLatLike),
-    new maplibregl.LngLatBounds()
-  )
-  map.fitBounds(bounds, { padding: 80 })
-}
-
-function clearRoute() {
-  if (!map) return
-  const source = map.getSource('route') as maplibregl.GeoJSONSource
-  if (source) {
-    source.setData({
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'LineString',
-        coordinates: [],
-      },
-    })
-  }
 }
 
 // ─── Location ──────────────────────────────────────────────────
@@ -293,190 +123,10 @@ function getCurrentLocation(): Promise<void> {
   })
 }
 
-// ─── Search ────────────────────────────────────────────────────
-const SEARCH_DEBOUNCE = 400
-let searchTimeout: ReturnType<typeof setTimeout> | null = null
-
-function onSearchInput() {
-  if (searchTimeout) clearTimeout(searchTimeout)
-  if (!searchQuery.value.trim()) {
-    searchResults.value = []
-    showSearchResults.value = false
-    return
+function flyToUserLocation() {
+  if (userLocation.value && map) {
+    map.flyTo({ center: [userLocation.value[1], userLocation.value[0]], zoom: 15 })
   }
-  searchTimeout = setTimeout(performSearch, SEARCH_DEBOUNCE)
-}
-
-function onSearchBlur() {
-  setTimeout(() => { searchFocused.value = false }, 200)
-}
-
-async function performSearch() {
-  const q = searchQuery.value.trim()
-  if (!q) return
-
-  searchLoading.value = true
-  showSearchResults.value = true
-
-  try {
-    const viewbox = getSearchViewbox()
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1${viewbox}`
-    const resp = await fetch(url, {
-      headers: { 'Accept-Language': 'en' },
-    })
-    const data = await resp.json()
-
-    searchResults.value = data.map((item: any, i: number) => ({
-      id: `search-${i}-${Date.now()}`,
-      name: item.display_name.split(',')[0],
-      address: item.display_name.split(',').slice(1, 3).join(',').trim(),
-      lat: parseFloat(item.lat),
-      lng: parseFloat(item.lon),
-      type: item.type || 'place',
-    }))
-  } catch {
-    searchResults.value = []
-  } finally {
-    searchLoading.value = false
-  }
-}
-
-function getSearchViewbox(): string {
-  if (!map) return ''
-  const bounds = map.getBounds()
-  return `&viewbox=${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()}&bounded=0`
-}
-
-function selectSearchResult(place: Place) {
-  selectedPlace.value = place
-  showSearchResults.value = false
-  searchQuery.value = place.name
-  searchFocused.value = false
-
-  // Add marker if not exists
-  if (!markers.value.find(m => m.id === place.id)) {
-    markers.value.push(place)
-    addPlaceMarker(place)
-  }
-
-  // Fly to location
-  if (map) {
-    map.flyTo({
-      center: [place.lng, place.lat],
-      zoom: 16,
-      essential: true,
-    })
-  }
-
-  showBottomSheet.value = true
-  bottomSheetContent.value = 'details'
-}
-
-function clearSearch() {
-  searchQuery.value = ''
-  searchResults.value = []
-  showSearchResults.value = false
-}
-
-// ─── Directions ────────────────────────────────────────────────
-function startDirections() {
-  if (!selectedPlace.value) return
-  directionsMode.value = true
-  directionsTo.value = selectedPlace.value
-  showDirectionsPanel.value = true
-  bottomSheetContent.value = 'directions'
-
-  if (userLocation.value) {
-    directionsFrom.value = {
-      id: 'user-location',
-      name: 'My Location',
-      address: '',
-      lat: userLocation.value[0],
-      lng: userLocation.value[1],
-      type: 'location',
-    }
-    fetchRoute()
-  }
-}
-
-async function fetchRoute() {
-  if (!directionsFrom.value || !directionsTo.value) return
-
-  try {
-    const from = directionsFrom.value
-    const to = directionsTo.value
-    const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`
-    const resp = await fetch(url)
-    const data = await resp.json()
-
-    if (data.routes && data.routes.length > 0) {
-      const route = data.routes[0]
-      routePoints.value = route.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]])
-      routeDistance.value = (route.distance / 1000).toFixed(1) + ' km'
-      routeDuration.value = Math.round(route.duration / 60) + ' min'
-      addRouteToMap()
-    }
-  } catch {
-    routePoints.value = []
-    routeDistance.value = ''
-    routeDuration.value = ''
-  }
-}
-
-function clearDirections() {
-  directionsMode.value = false
-  directionsFrom.value = null
-  directionsTo.value = null
-  routePoints.value = []
-  routeDistance.value = ''
-  routeDuration.value = ''
-  showDirectionsPanel.value = false
-  clearRoute()
-}
-
-// ─── Favorites ─────────────────────────────────────────────────
-function toggleFavorite(place: Place) {
-  const idx = favorites.value.findIndex(f => f.id === place.id)
-  if (idx >= 0) {
-    favorites.value.splice(idx, 1)
-  } else {
-    favorites.value.push({ ...place, id: `fav-${Date.now()}` })
-  }
-}
-
-function isFavorite(place: Place): boolean {
-  return favorites.value.some(f => f.lat === place.lat && f.lng === place.lng)
-}
-
-function selectFavorite(place: Place) {
-  selectSearchResult(place)
-  activeTab.value = 'explore'
-}
-
-// ─── Place Details ─────────────────────────────────────────────
-function getPlaceIcon(type: string): string {
-  const icons: Record<string, string> = {
-    restaurant: '🍽️',
-    cafe: '☕',
-    bar: '🍺',
-    hotel: '🏨',
-    shop: '🛍️',
-    park: '🌳',
-    landmark: '🏛️',
-    hospital: '🏥',
-    school: '🎓',
-    station: '🚉',
-    airport: '✈️',
-    location: '📍',
-    place: '📍',
-  }
-  return icons[type] || '📍'
-}
-
-// ─── Bottom Sheet ──────────────────────────────────────────────
-function closeBottomSheet() {
-  showBottomSheet.value = false
-  selectedPlace.value = null
 }
 
 // ─── Lifecycle ─────────────────────────────────────────────────
@@ -487,9 +137,8 @@ onMounted(async () => {
   initMap(center)
 
   if (userLocation.value) {
-    // Wait for map to load before adding marker
     const checkMap = setInterval(() => {
-      if (mapReady.value) {
+      if (map?.isStyleLoaded()) {
         clearInterval(checkMap)
         addUserMarker(userLocation.value!)
       }
@@ -531,61 +180,13 @@ onUnmounted(() => {
       <!-- Map Container -->
       <div ref="mapContainer" class="map-container"></div>
 
-      <!-- Top Overlay: Search Bar -->
-      <div class="top-overlay">
-        <div class="search-container" :class="{ focused: searchFocused, 'has-results': showSearchResults }">
-          <div class="search-bar">
-            <button class="back-btn" @click="emit('go-back')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M15 18l-6-6 6-6"/>
-              </svg>
-            </button>
-            <div class="search-input-wrapper">
-              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="M21 21l-4.35-4.35"/>
-              </svg>
-              <input
-                type="text"
-                class="search-input"
-                placeholder="Search for a place"
-                v-model="searchQuery"
-                @input="onSearchInput"
-                @focus="searchFocused = true; showSearchResults = true"
-                @blur="onSearchBlur"
-              />
-              <button v-if="searchQuery" class="search-clear" @click="clearSearch">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="10" fill="rgba(0,0,0,0.15)"/>
-                  <path d="M15.59 7L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z" fill="white"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Search Results Dropdown -->
-          <Transition name="dropdown">
-            <div v-if="showSearchResults && searchResults.length > 0" class="search-results">
-              <button
-                v-for="result in searchResults"
-                :key="result.id"
-                class="search-result-item"
-                @mousedown.prevent="selectSearchResult(result)"
-              >
-                <span class="result-icon">{{ getPlaceIcon(result.type) }}</span>
-                <div class="result-info">
-                  <span class="result-name">{{ result.name }}</span>
-                  <span class="result-address">{{ result.address }}</span>
-                </div>
-              </button>
-            </div>
-          </Transition>
-
-          <div v-if="showSearchResults && searchLoading" class="search-loading">
-            <div class="loading-spinner"></div>
-            <span>Searching...</span>
-          </div>
-        </div>
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <button class="back-btn" @click="emit('go-back')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Map Controls -->
@@ -634,174 +235,14 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <!-- Tab Bar -->
-      <div class="tab-bar">
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'explore' }"
-          @click="activeTab = 'explore'"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-          <span>Explore</span>
-        </button>
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'favorites' }"
-          @click="activeTab = 'favorites'; showBottomSheet = true; bottomSheetContent = 'favorites'"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
-          <span>Favorites</span>
-        </button>
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'directions' }"
-          @click="activeTab = 'directions'; showBottomSheet = true; bottomSheetContent = 'directions'"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-          </svg>
-          <span>Directions</span>
-        </button>
+      <!-- Attribution -->
+      <div class="attribution">
+        <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>
+        &middot;
+        <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">&copy; OpenMapTiles</a>
+        &middot;
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Data from OpenStreetMap</a>
       </div>
-
-      <!-- Bottom Sheet -->
-      <Transition name="sheet">
-        <div v-if="showBottomSheet" class="bottom-sheet-overlay" @click.self="closeBottomSheet">
-          <div class="bottom-sheet">
-            <div class="sheet-handle" @click="closeBottomSheet">
-              <div class="handle-bar"></div>
-            </div>
-
-            <!-- Place Details -->
-            <div v-if="bottomSheetContent === 'details' && selectedPlace" class="sheet-content">
-              <div class="place-header">
-                <span class="place-icon">{{ getPlaceIcon(selectedPlace.type) }}</span>
-                <div class="place-info">
-                  <h3>{{ selectedPlace.name }}</h3>
-                  <p v-if="selectedPlace.address">{{ selectedPlace.address }}</p>
-                </div>
-                <button
-                  class="fav-btn"
-                  :class="{ favorited: isFavorite(selectedPlace) }"
-                  @click="toggleFavorite(selectedPlace)"
-                >
-                  <svg viewBox="0 0 24 24" :fill="isFavorite(selectedPlace) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="place-actions">
-                <button class="action-btn primary" @click="startDirections">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-                  </svg>
-                  <span>Directions</span>
-                </button>
-                <button class="action-btn" @click="flyToPlace">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                  <span>Zoom In</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Favorites List -->
-            <div v-else-if="bottomSheetContent === 'favorites'" class="sheet-content">
-              <h3 class="sheet-title">Favorites</h3>
-              <div v-if="favorites.length === 0" class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-                <p>No favorites yet</p>
-                <span>Search for places and tap the heart to save them</span>
-              </div>
-              <div v-else class="favorites-list">
-                <button
-                  v-for="fav in favorites"
-                  :key="fav.id"
-                  class="favorite-item"
-                  @click="selectFavorite(fav)"
-                >
-                  <span class="fav-icon">{{ getPlaceIcon(fav.type) }}</span>
-                  <div class="fav-info">
-                    <span class="fav-name">{{ fav.name }}</span>
-                    <span class="fav-address">{{ fav.address }}</span>
-                  </div>
-                  <svg class="fav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- Directions Panel -->
-            <div v-else-if="bottomSheetContent === 'directions'" class="sheet-content">
-              <h3 class="sheet-title">Directions</h3>
-              <div class="directions-form">
-                <div class="direction-inputs">
-                  <div class="direction-dot from"></div>
-                  <input
-                    type="text"
-                    class="direction-input"
-                    :value="directionsFrom?.name || ''"
-                    placeholder="My Location"
-                    readonly
-                  />
-                  <button v-if="directionsFrom" class="direction-clear" @click="directionsFrom = null; routePoints = []; clearRoute()">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
-                  </button>
-                </div>
-                <div class="direction-divider"></div>
-                <div class="direction-inputs">
-                  <div class="direction-dot to"></div>
-                  <input
-                    type="text"
-                    class="direction-input"
-                    :value="directionsTo?.name || ''"
-                    placeholder="Choose destination"
-                    readonly
-                  />
-                  <button v-if="directionsTo" class="direction-clear" @click="directionsTo = null; routePoints = []; clearRoute()">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="routePoints.length > 0" class="route-info">
-                <div class="route-stat">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 6v6l4 2"/>
-                  </svg>
-                  <span>{{ routeDuration }}</span>
-                </div>
-                <div class="route-stat">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-                  </svg>
-                  <span>{{ routeDistance }}</span>
-                </div>
-              </div>
-
-              <div v-if="directionsMode && !directionsFrom" class="direction-hint">
-                <p>Select a starting point by searching or using your current location</p>
-                <button class="action-btn primary" @click="getCurrentLocation().then(() => { if (userLocation) directionsFrom = { id: 'user-location', name: 'My Location', address: '', lat: userLocation[0], lng: userLocation[1], type: 'location' } })">
-                  Use My Location
-                </button>
-              </div>
-
-              <button v-if="directionsMode" class="action-btn danger" @click="clearDirections">
-                Clear Route
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
     </template>
 
     <!-- Location Error Toast -->
@@ -945,58 +386,8 @@ onUnmounted(() => {
   50% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
 }
 
-/* ─── Place Marker ───────────────────────────────────────────── */
-:deep(.place-marker) {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-:deep(.place-marker-icon) {
-  width: 36px;
-  height: 36px;
-  background: white;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  font-size: 16px;
-}
-
-:deep(.place-marker-icon) {
-  transform: rotate(0);
-}
-
-/* ─── Popup ──────────────────────────────────────────────────── */
-:deep(.popup-content) {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-}
-
-:deep(.popup-content strong) {
-  display: block;
-  font-size: 14px;
-  color: #1a1a1a;
-}
-
-:deep(.popup-content p) {
-  font-size: 12px;
-  color: #6b6b6b;
-  margin-top: 2px;
-}
-
-:deep(.maplibregl-popup-content) {
-  border-radius: 10px;
-  padding: 10px 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-
-/* ─── Top Overlay ────────────────────────────────────────────── */
-.top-overlay {
+/* ─── Top Bar ────────────────────────────────────────────────── */
+.top-bar {
   position: absolute;
   top: 0;
   left: 0;
@@ -1006,203 +397,40 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.top-overlay > * {
+.top-bar > * {
   pointer-events: auto;
 }
 
-.search-container {
-  position: relative;
-}
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: white;
-  border-radius: 12px;
-  padding: 8px 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.2s ease;
-}
-
-.search-container.focused .search-bar {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(0, 122, 255, 0.15);
-}
-
 .back-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.05);
+  background: white;
   border: none;
   color: #007aff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
 }
 
 .back-btn:active {
-  background: rgba(0, 0, 0, 0.1);
+  transform: scale(0.92);
+  background: #f0f0f0;
 }
 
 .back-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.search-input-wrapper {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.search-icon {
-  width: 16px;
-  height: 16px;
-  color: #999;
-  flex-shrink: 0;
-}
-
-.search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 16px;
-  color: #1a1a1a;
-  background: none;
-  font-family: inherit;
-  padding: 4px 0;
-}
-
-.search-input::placeholder {
-  color: #999;
-}
-
-.search-clear {
   width: 20px;
   height: 20px;
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.search-clear svg {
-  width: 20px;
-  height: 20px;
-}
-
-/* ─── Search Results ─────────────────────────────────────────── */
-.search-results {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.search-result-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.search-result-item:active {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-.search-result-item + .search-result-item {
-  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
-}
-
-.result-icon {
-  font-size: 20px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.result-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.result-name {
-  display: block;
-  font-size: 15px;
-  font-weight: 500;
-  color: #1a1a1a;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.result-address {
-  display: block;
-  font-size: 13px;
-  color: #6b6b6b;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 2px;
-}
-
-.search-loading {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: #6b6b6b;
-  font-size: 14px;
-}
-
-.btn-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #007aff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
 
 /* ─── Map Controls ───────────────────────────────────────────── */
 .map-controls {
   position: absolute;
   right: 16px;
-  bottom: 140px;
+  bottom: 100px;
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -1281,410 +509,35 @@ onUnmounted(() => {
   opacity: 0.6;
 }
 
-/* ─── Tab Bar ────────────────────────────────────────────────── */
-.tab-bar {
+.btn-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #007aff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ─── Attribution ────────────────────────────────────────────── */
+.attribution {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 8px;
+  left: 8px;
   z-index: 10;
-  display: flex;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 0.5px solid rgba(0, 0, 0, 0.08);
-  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 8px);
-}
-
-.tab-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #999;
-  transition: color 0.2s ease;
-}
-
-.tab-btn.active {
-  color: #007aff;
-}
-
-.tab-btn svg {
-  width: 22px;
-  height: 22px;
-}
-
-.tab-btn span {
   font-size: 10px;
-  font-weight: 500;
+  color: rgba(0, 0, 0, 0.5);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
-/* ─── Bottom Sheet ───────────────────────────────────────────── */
-.bottom-sheet-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 11;
-  background: rgba(0, 0, 0, 0.3);
-  display: flex;
-  align-items: flex-end;
+.attribution a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.bottom-sheet {
-  width: 100%;
-  max-height: 60vh;
-  background: white;
-  border-radius: 16px 16px 0 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.sheet-handle {
-  display: flex;
-  justify-content: center;
-  padding: 12px 0 8px;
-  cursor: pointer;
-}
-
-.handle-bar {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(0, 0, 0, 0.15);
-}
-
-.sheet-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 20px 24px;
-}
-
-.sheet-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 16px;
-}
-
-/* ─── Place Details ──────────────────────────────────────────── */
-.place-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.place-icon {
-  font-size: 28px;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-
-.place-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.place-info h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.place-info p {
-  font-size: 14px;
-  color: #6b6b6b;
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fav-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.04);
-  border: none;
-  color: #999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.fav-btn:active {
-  transform: scale(0.9);
-}
-
-.fav-btn.favorited {
-  color: #ff3b30;
-  background: rgba(255, 59, 48, 0.08);
-}
-
-.fav-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-.place-actions {
-  display: flex;
-  gap: 10px;
-}
-
-/* ─── Action Buttons ─────────────────────────────────────────── */
-.action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: none;
-  background: rgba(0, 0, 0, 0.04);
-  color: #1a1a1a;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.action-btn:active {
-  transform: scale(0.97);
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.action-btn.primary {
-  background: #007aff;
-  color: white;
-}
-
-.action-btn.primary:active {
-  background: #0066d6;
-}
-
-.action-btn.danger {
-  background: rgba(255, 59, 48, 0.08);
-  color: #ff3b30;
-}
-
-.action-btn.danger:active {
-  background: rgba(255, 59, 48, 0.15);
-}
-
-.action-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* ─── Favorites ──────────────────────────────────────────────── */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 32px 16px;
-  text-align: center;
-}
-
-.empty-state svg {
-  width: 40px;
-  height: 40px;
-  color: #ccc;
-}
-
-.empty-state p {
-  font-size: 16px;
-  font-weight: 500;
-  color: #1a1a1a;
-}
-
-.empty-state span {
-  font-size: 13px;
-  color: #999;
-}
-
-.favorites-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.favorite-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.favorite-item:active {
-  opacity: 0.6;
-}
-
-.favorite-item + .favorite-item {
-  border-top: 0.5px solid rgba(0, 0, 0, 0.06);
-}
-
-.fav-icon {
-  font-size: 20px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.04);
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-
-.fav-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.fav-name {
-  display: block;
-  font-size: 15px;
-  font-weight: 500;
-  color: #1a1a1a;
-}
-
-.fav-address {
-  display: block;
-  font-size: 13px;
-  color: #6b6b6b;
-  margin-top: 2px;
-}
-
-.fav-chevron {
-  width: 16px;
-  height: 16px;
-  color: #ccc;
-  flex-shrink: 0;
-}
-
-/* ─── Directions ─────────────────────────────────────────────── */
-.directions-form {
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 12px;
-  padding: 4px 0;
-  margin-bottom: 16px;
-}
-
-.direction-inputs {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-}
-
-.direction-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.direction-dot.from {
-  background: #007aff;
-}
-
-.direction-dot.to {
-  background: #ff3b30;
-}
-
-.direction-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 15px;
-  color: #1a1a1a;
-  background: none;
-  font-family: inherit;
-}
-
-.direction-input::placeholder {
-  color: #999;
-}
-
-.direction-clear {
-  width: 20px;
-  height: 20px;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #999;
-}
-
-.direction-clear svg {
-  width: 16px;
-  height: 16px;
-}
-
-.direction-divider {
-  height: 0.5px;
-  background: rgba(0, 0, 0, 0.08);
-  margin: 0 16px 0 38px;
-}
-
-.route-info {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  background: rgba(0, 122, 255, 0.06);
-  border-radius: 12px;
-}
-
-.route-stat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #007aff;
-}
-
-.route-stat svg {
-  width: 18px;
-  height: 18px;
-}
-
-.direction-hint {
-  text-align: center;
-  padding: 16px 0;
-}
-
-.direction-hint p {
-  font-size: 14px;
-  color: #6b6b6b;
-  margin-bottom: 12px;
+.attribution a:hover {
+  text-decoration: underline;
 }
 
 /* ─── Error Toast ────────────────────────────────────────────── */
@@ -1748,24 +601,6 @@ onUnmounted(() => {
   transform: translateY(-8px);
 }
 
-.sheet-enter-active {
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.sheet-leave-active {
-  transition: all 0.2s ease-in;
-}
-
-.sheet-enter-from,
-.sheet-leave-to {
-  opacity: 0;
-}
-
-.sheet-enter-from .bottom-sheet,
-.sheet-leave-to .bottom-sheet {
-  transform: translateY(100%);
-}
-
 .toast-enter-active {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -1782,19 +617,8 @@ onUnmounted(() => {
 
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (min-width: 768px) {
-  .top-overlay {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-
   .map-controls {
     right: 24px;
-  }
-
-  .bottom-sheet {
-    max-width: 480px;
-    margin: 0 auto;
-    border-radius: 16px 16px 0 0;
   }
 }
 </style>
