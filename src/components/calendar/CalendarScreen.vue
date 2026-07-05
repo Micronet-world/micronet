@@ -226,7 +226,6 @@ function formatEventTime(time: string): string {
         <div class="header-top">
           <h1 class="header-title">{{ t('calendar.title') }}</h1>
           <button class="today-pill" @click="goToToday">
-            <span class="today-dot"></span>
             {{ t('calendar.today') }}
           </button>
         </div>
@@ -234,7 +233,7 @@ function formatEventTime(time: string): string {
         <!-- Month Navigation -->
         <div class="month-nav">
           <button class="nav-btn" @click="prevMonth" aria-label="Previous month">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
@@ -242,7 +241,7 @@ function formatEventTime(time: string): string {
             <span :key="monthKey" class="month-label">{{ monthNames[viewMonth] }} {{ viewYear }}</span>
           </Transition>
           <button class="nav-btn" @click="nextMonth" aria-label="Next month">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
@@ -258,7 +257,7 @@ function formatEventTime(time: string): string {
       <Transition :name="slideDirection === 'right' ? 'slide-right' : 'slide-left'" mode="out-in">
         <div :key="monthKey" class="calendar-grid">
           <button
-            v-for="(day, i) in calendarDays"
+            v-for="day in calendarDays"
             :key="day.date"
             class="day-cell"
             :class="{
@@ -266,7 +265,6 @@ function formatEventTime(time: string): string {
               'is-today': day.isToday,
               'is-selected': day.date === selectedDate,
             }"
-            :style="{ animationDelay: `${i * 8}ms` }"
             @click="selectDay(day.date)"
           >
             <span class="day-number">{{ day.day }}</span>
@@ -290,7 +288,7 @@ function formatEventTime(time: string): string {
             <span v-if="selectedDayEvents.length > 0" class="event-count">{{ selectedDayEvents.length }}</span>
           </div>
           <button class="add-event-btn" @click="openNewEvent" aria-label="Add event">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round" />
               <line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round" />
             </svg>
@@ -300,12 +298,11 @@ function formatEventTime(time: string): string {
         <Transition name="fade" mode="out-in">
           <div v-if="selectedDayEvents.length === 0" key="empty" class="no-events">
             <div class="empty-illustration">
-              <svg viewBox="0 0 64 64" fill="none">
-                <rect x="8" y="12" width="48" height="44" rx="8" stroke="currentColor" stroke-width="2" />
-                <line x1="8" y1="24" x2="56" y2="24" stroke="currentColor" stroke-width="2" />
-                <line x1="22" y1="8" x2="22" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                <line x1="42" y1="8" x2="42" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                <circle cx="32" cy="40" r="8" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3" />
+              <svg viewBox="0 0 48 48" fill="none">
+                <rect x="6" y="10" width="36" height="32" rx="4" stroke="currentColor" stroke-width="1.5" />
+                <line x1="6" y1="18" x2="42" y2="18" stroke="currentColor" stroke-width="1.5" />
+                <line x1="16" y1="6" x2="16" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <line x1="32" y1="6" x2="32" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
               </svg>
             </div>
             <span class="empty-text">{{ t('calendar.noEvents') }}</span>
@@ -313,10 +310,9 @@ function formatEventTime(time: string): string {
 
           <div v-else key="list" class="event-list">
             <button
-              v-for="(event, i) in selectedDayEvents"
+              v-for="event in selectedDayEvents"
               :key="event.id"
               class="event-item"
-              :style="{ animationDelay: `${i * 60}ms` }"
               @click="openEditEvent(event)"
             >
               <div class="event-color-bar" :style="{ background: event.color }"></div>
@@ -344,7 +340,7 @@ function formatEventTime(time: string): string {
           <div class="modal-handle"></div>
           <div class="modal-header">
             <button class="modal-close" @click="closeModal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
               </svg>
             </button>
@@ -430,13 +426,7 @@ function formatEventTime(time: string): string {
 .wallpaper {
   position: absolute;
   inset: 0;
-  background: var(--color-bg);
-  animation: breathe 8s ease-in-out infinite;
-}
-
-@keyframes breathe {
-  0%, 100% { background-color: #faf9f6; }
-  50% { background-color: #f5f2ec; }
+  background: linear-gradient(180deg, #f8f7f4 0%, #f2f0ec 100%);
 }
 
 .content {
@@ -451,58 +441,38 @@ function formatEventTime(time: string): string {
 /* ─── Header ─────────────────────────────────────────────────── */
 .header {
   flex-shrink: 0;
-  padding: calc(env(safe-area-inset-top, 12px) + 8px) 16px 0;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(250, 249, 246, 0.85);
-  border-bottom: 0.5px solid rgba(0, 0, 0, 0.06);
+  padding: calc(env(safe-area-inset-top, 12px) + 16px) 20px 0;
 }
 
 .header-top {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  height: 44px;
+  margin-bottom: 20px;
 }
 
 .header-title {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 300;
   color: var(--color-text);
   letter-spacing: -0.5px;
 }
 
 .today-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   font-size: 13px;
-  font-weight: 600;
-  color: #007aff;
-  background: rgba(0, 122, 255, 0.08);
-  border: none;
-  border-radius: 16px;
-  padding: 6px 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 6px 16px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .today-pill:active {
-  transform: scale(0.95);
-  background: rgba(0, 122, 255, 0.15);
-}
-
-.today-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #007aff;
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.8); }
+  background: rgba(0, 0, 0, 0.04);
+  transform: scale(0.98);
 }
 
 /* ─── Month Navigation ───────────────────────────────────────── */
@@ -510,16 +480,16 @@ function formatEventTime(time: string): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 4px 6px;
+  padding: 0 4px 16px;
 }
 
 .nav-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: none;
   border: none;
-  color: #007aff;
+  color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -528,19 +498,20 @@ function formatEventTime(time: string): string {
 }
 
 .nav-btn:active {
-  background: rgba(0, 122, 255, 0.1);
-  transform: scale(0.9);
+  background: rgba(0, 0, 0, 0.05);
+  transform: scale(0.95);
 }
 
 .nav-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .month-label {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text);
+  letter-spacing: 0.3px;
 }
 
 /* ─── Month Slide Transitions ────────────────────────────────── */
@@ -551,37 +522,31 @@ function formatEventTime(time: string): string {
   transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.slide-left-enter-from { transform: translateX(-30px); opacity: 0; }
-.slide-left-leave-to { transform: translateX(30px); opacity: 0; }
-.slide-right-enter-from { transform: translateX(30px); opacity: 0; }
-.slide-right-leave-to { transform: translateX(-30px); opacity: 0; }
+.slide-left-enter-from { transform: translateX(-20px); opacity: 0; }
+.slide-left-leave-to { transform: translateX(20px); opacity: 0; }
+.slide-right-enter-from { transform: translateX(20px); opacity: 0; }
+.slide-right-leave-to { transform: translateX(-20px); opacity: 0; }
 
 /* ─── Weekday Row ────────────────────────────────────────────── */
 .weekday-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  padding: 10px 0 6px;
+  padding: 0 0 8px;
 }
 
 .weekday {
   text-align: center;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-
-.weekday:first-child,
-.weekday:last-child {
-  color: #ff3b30;
+  letter-spacing: 0.5px;
 }
 
 /* ─── Calendar Grid ──────────────────────────────────────────── */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  padding: 4px 8px 8px;
+  padding: 0 12px 16px;
   flex-shrink: 0;
 }
 
@@ -591,27 +556,21 @@ function formatEventTime(time: string): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   background: none;
   border: none;
   cursor: pointer;
   border-radius: 50%;
   position: relative;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  animation: day-enter 0.3s ease both;
-}
-
-@keyframes day-enter {
-  from { opacity: 0; transform: scale(0.8); }
-  to { opacity: 1; transform: scale(1); }
+  transition: all 0.2s ease;
 }
 
 .day-cell:active {
-  transform: scale(0.9);
+  transform: scale(0.92);
 }
 
 .day-number {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 400;
   color: var(--color-text);
   line-height: 1;
@@ -620,26 +579,21 @@ function formatEventTime(time: string): string {
 
 .day-cell.other-month .day-number {
   color: var(--color-text-muted);
-  opacity: 0.5;
-}
-
-.day-cell.is-today {
-  background: rgba(0, 122, 255, 0.06);
+  opacity: 0.4;
 }
 
 .day-cell.is-today .day-number {
   color: #007aff;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .day-cell.is-selected {
-  background: #007aff;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+  background: var(--color-text);
 }
 
 .day-cell.is-selected .day-number {
   color: #fff;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .day-cell.is-selected.other-month .day-number {
@@ -647,14 +601,13 @@ function formatEventTime(time: string): string {
 }
 
 .day-cell.is-selected .event-pip {
-  background: #fff !important;
-  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.8) !important;
 }
 
 /* ─── Event Indicator ────────────────────────────────────────── */
 .event-indicator {
   display: flex;
-  gap: 2px;
+  gap: 3px;
   height: 4px;
 }
 
@@ -670,52 +623,50 @@ function formatEventTime(time: string): string {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 0 16px 16px;
+  padding: 0 20px 20px;
 }
 
 .day-events-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0 10px;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 12px;
+  padding: 16px 0 12px;
   position: sticky;
   top: 0;
-  background: var(--color-bg);
+  background: linear-gradient(180deg, #f2f0ec 0%, #f2f0ec 100%);
   z-index: 2;
 }
 
 .day-events-label-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .day-events-label {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-secondary);
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
 }
 
 .event-count {
-  font-size: 12px;
-  font-weight: 700;
-  color: #007aff;
-  background: rgba(0, 122, 255, 0.1);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 10px;
-  padding: 1px 8px;
-  min-width: 22px;
+  padding: 2px 8px;
+  min-width: 20px;
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .add-event-btn {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: #007aff;
+  background: var(--color-text);
   border: none;
   color: #fff;
   display: flex;
@@ -723,17 +674,16 @@ function formatEventTime(time: string): string {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .add-event-btn:active {
   transform: scale(0.85);
-  background: #0066d6;
+  background: #333;
 }
 
 .add-event-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 /* ─── Empty State ────────────────────────────────────────────── */
@@ -741,21 +691,15 @@ function formatEventTime(time: string): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 40px 0;
+  gap: 16px;
+  padding: 48px 0;
   color: var(--color-text-muted);
 }
 
 .empty-illustration {
-  width: 64px;
-  height: 64px;
-  opacity: 0.3;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  width: 48px;
+  height: 48px;
+  opacity: 0.2;
 }
 
 .empty-illustration svg {
@@ -765,7 +709,8 @@ function formatEventTime(time: string): string {
 
 .empty-text {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
 }
 
 /* ─── Fade Transition ────────────────────────────────────────── */
@@ -777,37 +722,31 @@ function formatEventTime(time: string): string {
 .event-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .event-item {
   display: flex;
   align-items: stretch;
-  gap: 12px;
+  gap: 14px;
   background: white;
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 14px;
+  padding: 16px;
   cursor: pointer;
   border: none;
   text-align: left;
   width: 100%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  animation: event-slide-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@keyframes event-slide-in {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
 }
 
 .event-item:active {
-  transform: scale(0.98);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transform: scale(0.99);
+  background: #fafafa;
 }
 
 .event-color-bar {
-  width: 4px;
+  width: 3px;
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -815,13 +754,13 @@ function formatEventTime(time: string): string {
 .event-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .event-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text);
   letter-spacing: -0.1px;
 }
@@ -831,14 +770,14 @@ function formatEventTime(time: string): string {
   color: var(--color-text-secondary);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .time-icon {
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .event-notes {
@@ -847,16 +786,15 @@ function formatEventTime(time: string): string {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 1px;
 }
 
 /* ─── Modal ──────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 100;
   display: flex;
   align-items: flex-end;
@@ -867,27 +805,26 @@ function formatEventTime(time: string): string {
   width: 100%;
   max-width: 500px;
   background: var(--color-bg);
-  border-radius: 20px 20px 0 0;
+  border-radius: 24px 24px 0 0;
   max-height: 85vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .modal-handle {
-  width: 36px;
+  width: 32px;
   height: 4px;
   border-radius: 2px;
-  background: rgba(0, 0, 0, 0.12);
-  margin: 10px auto 0;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 12px auto 0;
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 12px;
-  border-bottom: 0.5px solid var(--color-border);
+  padding: 16px 20px 14px;
   position: sticky;
   top: 0;
   background: var(--color-bg);
@@ -895,8 +832,8 @@ function formatEventTime(time: string): string {
 }
 
 .modal-close {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.06);
   border: none;
@@ -914,19 +851,19 @@ function formatEventTime(time: string): string {
 }
 
 .modal-close svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .modal-title {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text);
 }
 
 .modal-save {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   color: #007aff;
   background: none;
   border: none;
@@ -945,42 +882,40 @@ function formatEventTime(time: string): string {
 }
 
 .modal-body {
-  padding: 20px 16px 32px;
+  padding: 8px 20px 32px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 .title-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .color-dot-large {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 .modal-input {
   width: 100%;
-  font-size: 16px;
+  font-size: 15px;
   font-family: inherit;
   color: var(--color-text);
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
-  padding: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
   outline: none;
   transition: all 0.2s ease;
 }
 
 .modal-input:focus {
-  border-color: #007aff;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.08);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .modal-input::placeholder {
@@ -988,33 +923,29 @@ function formatEventTime(time: string): string {
 }
 
 .title-input {
-  font-size: 18px;
-  font-weight: 600;
-  border: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 0;
-  padding: 10px 0;
+  font-size: 17px;
+  font-weight: 500;
   background: transparent;
+  padding: 12px 0;
   letter-spacing: -0.2px;
 }
 
 .title-input:focus {
-  border-color: #007aff;
-  box-shadow: none;
+  background: transparent;
 }
 
 .modal-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .modal-section-label {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--color-text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
 
 .modal-row {
@@ -1022,13 +953,13 @@ function formatEventTime(time: string): string {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 2px 0;
+  padding: 4px 0;
 }
 
 .modal-divider {
   height: 0.5px;
   background: rgba(0, 0, 0, 0.06);
-  margin: 0 0 0 80px;
+  margin: 0 0 0 70px;
 }
 
 .modal-label {
@@ -1044,7 +975,7 @@ function formatEventTime(time: string): string {
   background: transparent;
   padding: 4px 0;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400;
   color: #007aff;
 }
 
@@ -1055,42 +986,40 @@ function formatEventTime(time: string): string {
 
 .color-picker {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .color-dot {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 3px solid transparent;
+  border: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 .color-dot svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .color-dot:active {
-  transform: scale(0.85);
+  transform: scale(0.9);
 }
 
 .color-dot.active {
   border-color: var(--color-text);
-  transform: scale(1.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+  transform: scale(1.1);
 }
 
 .notes-input {
   resize: none;
-  min-height: 80px;
-  font-size: 15px;
+  min-height: 72px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -1101,25 +1030,25 @@ function formatEventTime(time: string): string {
   gap: 8px;
   width: 100%;
   padding: 14px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: #ff3b30;
-  background: rgba(255, 59, 48, 0.06);
+  background: rgba(255, 59, 48, 0.05);
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  margin-top: 4px;
+  margin-top: 8px;
   transition: all 0.15s ease;
 }
 
 .delete-event-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .delete-event-btn:active {
   transform: scale(0.98);
-  background: rgba(255, 59, 48, 0.12);
+  background: rgba(255, 59, 48, 0.1);
 }
 
 /* ─── Modal Transition ───────────────────────────────────────── */
@@ -1144,19 +1073,19 @@ function formatEventTime(time: string): string {
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (min-width: 768px) {
   .calendar-grid {
-    padding: 8px 16px;
+    padding: 0 24px 20px;
   }
 
   .day-number {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .header-title {
-    font-size: 32px;
+    font-size: 36px;
   }
 
   .event-item {
-    padding: 16px;
+    padding: 18px;
   }
 }
 </style>
