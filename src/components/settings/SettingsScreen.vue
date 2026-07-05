@@ -5,9 +5,9 @@ import { useSwipeGestures } from '../../composables/useSwipeGestures'
 import { useBluetooth } from '../../composables/useBluetooth'
 import type { BTDevice, BTCharacteristic } from '../../composables/useBluetooth'
 import { useI18n } from 'vue-i18n'
-import { setLocale } from '../../i18n'
+import { setLocale, getLocale } from '../../i18n'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const emit = defineEmits<{
   'go-lock': []
@@ -50,6 +50,14 @@ const autoBrightness = ref(true)
 const brightness = ref(60)
 const fontSize = ref<'small' | 'default' | 'large'>('default')
 
+const LOCALES = ['en', 'zh'] as const
+function cycleLocale() {
+  const cur = getLocale()
+  const idx = LOCALES.indexOf(cur)
+  const next = LOCALES[(idx + 1) % LOCALES.length]
+  setLocale(next)
+}
+
 // --- Navigation ---
 type Page = 'main' | 'wifi' | 'bluetooth' | 'bluetooth-device' | 'display' | 'notifications' | 'privacy' | 'about'
 const currentPage = ref<Page>('main')
@@ -80,6 +88,7 @@ interface SettingsItem {
   labelKey: string
   keywords: string[]
   page: Page
+  action?: 'cycleLocale'
 }
 
 const settingsItems: SettingsItem[] = [
@@ -87,6 +96,7 @@ const settingsItems: SettingsItem[] = [
   { labelKey: 'settings.wifi', keywords: ['wifi', 'wi-fi', 'wireless', 'network', 'internet', '无线', '网络'], page: 'wifi' },
   { labelKey: 'settings.bluetooth', keywords: ['bluetooth', 'wireless', 'pair', 'device', '蓝牙', '配对'], page: 'bluetooth' },
   { labelKey: 'settings.displayBrightness', keywords: ['display', 'brightness', 'dark mode', 'screen', 'text', 'font', 'true tone', '显示', '亮度', '深色'], page: 'display' },
+  { labelKey: 'settings.language', keywords: ['language', 'locale', 'english', 'chinese', '语言', '中文', '英文'], page: 'main' as Page, action: 'cycleLocale' },
   { labelKey: 'settings.notifications', keywords: ['notifications', 'alerts', 'messages', 'mail', 'calendar', 'photos', 'banner', '通知', '消息'], page: 'notifications' },
   { labelKey: 'settings.privacySecurity', keywords: ['privacy', 'security', 'location', 'face id', 'passcode', 'lock', '隐私', '安全', '定位'], page: 'privacy' },
   { labelKey: 'settings.about', keywords: ['about', 'model', 'version', 'storage', 'device', 'info', '关于', '型号', '版本', '存储'], page: 'about' },
@@ -102,7 +112,9 @@ const filteredItems = computed(() => {
 })
 
 const handleSearchResultClick = (item: SettingsItem) => {
-  if (item.page === 'main') {
+  if (item.action === 'cycleLocale') {
+    cycleLocale()
+  } else if (item.page === 'main') {
     airplaneMode.value = !airplaneMode.value
   } else {
     navigateTo(item.page)
@@ -412,8 +424,19 @@ const deviceInfo = {
                 </div>
               </div>
 
-              <!-- About -->
+              <!-- Language & About -->
               <div class="settings-group stagger-3">
+                <div class="settings-row" @click="cycleLocale">
+                  <div class="row-icon language-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                  </div>
+                  <span class="row-label">{{ t('settings.language') }}</span>
+                  <span class="row-value">{{ t('settings.languageName') }}</span>
+                  <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
                 <div class="settings-row" @click="navigateTo('about')">
                   <div class="row-icon about-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -863,11 +886,6 @@ const deviceInfo = {
               <div class="settings-row">
                 <span class="row-label">{{ t('settings.version') }}</span>
                 <span class="row-value">{{ deviceInfo.version }}</span>
-              </div>
-              <div class="settings-row" @click="setLocale(locale === 'en' ? 'zh' : 'en')">
-                <span class="row-label">{{ t('settings.language') }}</span>
-                <span class="row-value">{{ t('settings.languageName') }}</span>
-                <svg class="row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
               </div>
             </div>
             <div class="group-header">{{ t('settings.storage') }}</div>
