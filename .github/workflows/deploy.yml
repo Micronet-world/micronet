@@ -1,0 +1,117 @@
+name: Deploy & Sync
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      kernel: ${{ steps.changes.outputs.kernel }}
+      sdk: ${{ steps.changes.outputs.sdk }}
+      apps: ${{ steps.changes.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            kernel:
+              - 'kernel/**'
+            sdk:
+              - 'sdk/**'
+            apps:
+              - 'apps/**'
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test
+
+  sync-kernel:
+    needs: [detect-changes, test]
+    if: needs.detect-changes.outputs.kernel == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sync kernel to sub-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git remote add kernel https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/kernel.git || true
+          git fetch kernel
+          
+          SUBTREE_HEAD=$(git subtree split --prefix=kernel)
+          git push kernel ${SUBTREE_HEAD}:main --force
+
+  sync-sdk:
+    needs: [detect-changes, test]
+    if: needs.detect-changes.outputs.sdk == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sync sdk to sub-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git remote add sdk https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/sdk.git || true
+          git fetch sdk
+          
+          SUBTREE_HEAD=$(git subtree split --prefix=sdk)
+          git push sdk ${SUBTREE_HEAD}:main --force
+
+  sync-apps:
+    needs: [detect-changes, test]
+    if: needs.detect-changes.outputs.apps == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Sync apps to sub-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git remote add apps https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/apps.git || true
+          git fetch apps
+          
+          SUBTREE_HEAD=$(git subtree split --prefix=apps)
+          git push apps ${SUBTREE_HEAD}:main --force
+
+  notify:
+    needs: [sync-kernel, sync-sdk, sync-apps]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "## Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| kernel | ${{ needs.sync-kernel.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| sdk | ${{ needs.sync-sdk.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| apps | ${{ needs.sync-apps.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY

@@ -21,12 +21,24 @@ Guidance for agents working in `micronet/` (the Vue 3 lock-screen prototype). Ru
 
 ## Architecture
 
-- **No router, no state library.** Screens are registered as plugins; navigation is a stack state machine.
-- **Screen registry** (`src/screens/`): `types.ts` defines `ScreenId`, `ScreenMeta`, `NavIntent`, and `ScreenPlugin`; `registry.ts` holds one `ScreenPlugin` per screen — its `component`, display metadata (`label`/`color`/`icon`), and an `events` map from each emitted event name to a `NavIntent`. **Adding a screen = add one plugin entry** (no edits to `App.vue`).
-- **`useScreenStack`** (`src/composables/useScreenStack.ts`) owns `screenStack: ref<ScreenId[]>`, `currentScreen` (stack top), and a single `dispatch(intent: NavIntent)` reducer covering `push`/`lock`/`home`/`back`/`navigate`. `App.vue` calls this and otherwise has no navigation logic.
-- `App.vue` renders the current screen with `<component :is="currentPlugin.component" :key="currentScreen" v-on="screenListeners">` — there is **no per-screen `v-if` chain**; `screenListeners` is built from the plugin's `events` map.
-- Feature screens live in `src/components/{camera,home,photos,settings}/*Screen.vue`. Lock-screen subcomponents (`StatusBar`, `TimeDisplay`, `BottomActions`, `SwipeIndicator`) sit directly in `src/components/`.
-- Shared logic is in `src/composables/`: `useScreenStack` (navigation), `useSwipeGestures` (gestures), and `usePhotoStore` (a module-scope singleton persisted to `localStorage` under key `micronet-photos`, auto-saving via `watch`).
+- **No router, no state library.** Screens are registered through a middleware layer; navigation is a stack state machine.
+- **Three-package structure** (`kernel/`, `sdk/`, `apps/`): The codebase is split into three packages under `Micronet-world`:
+  - **`kernel/`** (AGPL-3.0): Core runtime — middleware, composables, shared components, i18n. Published as `@micronet/kernel`.
+  - **`sdk/`** (MIT): Developer tools — app loader, store, compiler, bundler, CLI, helpers. Published as `@micronet/sdk`.
+  - **`apps/`** (MIT): Built-in screens — lock, home, settings, camera, photos, maps, calendar. Published as `@micronet/apps`.
+- **`src/`** is the composition root: `App.vue` wires kernel + sdk + apps together. Integration tests live here.
+- **Middleware** (`kernel/src/middleware/`): The sole bridge between apps and the kernel runtime.
+  - `types.ts`: `ScreenId`, `ScreenMeta`, `NavIntent`, `ScreenRegistration`, `NavRequest`.
+  - `bus.ts`: Pub/sub message bus with two channels — `onNav` (navigation requests) and `onScreen` (screen registration).
+  - `navigation.ts`: `useNavigation()` composable for apps. Returns `goTo(screen)`, `goBack()`, `goHome()`, `lock()`, `navigate(screen)`.
+  - `registry.ts`: `registerScreen(meta, events)` stores screen metadata and event-to-intent mappings.
+  - `kernel.ts`: `useKernelBridge()` composable for `App.vue`. Subscribes to nav messages, dispatches through `useScreenStack`.
+  - `screens.ts`: `registerScreenComponents(map)` for apps to register their Vue components with the kernel.
+- **Screen registration** happens at module-import time via `*.register.ts` files in `apps/src/components/`. Each calls `registerScreen(meta, events)` from `@micronet/kernel` as a side effect. The `apps/src/index.ts` barrel imports all `.register.ts` files and exports `screenComponents`.
+- **`useScreenStack`** (`kernel/src/composables/useScreenStack.ts`) owns `screenStack: ref<ScreenId[]>`, `currentScreen` (stack top), and a single `dispatch(intent: NavIntent)` reducer covering `push`/`lock`/`home`/`back`/`navigate`.
+- `src/App.vue` renders the current screen with `<component :is="activeComponent" :key="currentScreen">`. It imports from all three packages and calls `registerScreenComponents(appComponents)` to wire apps into the kernel.
+- **Shared components** (`apps/src/components/`): `StatusBar`, `TimeDisplay`, `BottomActions`, `SwipeIndicator` are co-located with the screen components.
+- **Shared composables** (`kernel/src/composables/`): `useScreenStack`, `useSwipeGestures`, `usePhotoStore`, `useCalendarStore`, `useBluetooth`, `storage`.
 
 ## Gesture system
 
@@ -37,6 +49,7 @@ Guidance for agents working in `micronet/` (the Vue 3 lock-screen prototype). Ru
 ## Testing
 
 - Vitest with `jsdom`, `@vue/test-utils`, and `globals: true` (`vitest.config.ts`). Specs are `*.spec.ts` co-located in `__tests__/` dirs beside the code; whole-app integration tests are in `src/__tests__/App.integration.spec.ts`.
+- **Unit tests for screens** use `onNav` from the middleware to capture navigation requests instead of checking `wrapper.emitted()`. Subscribe in `beforeEach`, assert on `navLog`, and call `resetBus()` in `afterEach`. See `LockScreen.spec.ts` for the pattern.
 - Integration tests mount the full `App` and drive gestures by dispatching raw `MouseEvent`/`TouchEvent` on `window` (see the `swipeUp`/`swipeDown` helpers). Reuse that pattern — don't try to simulate hammerjs.
 - **`TimeDisplay` polls `new Date()` every second**, so App integration tests wrap each case in `vi.useFakeTimers()` / `vi.useRealTimers()`. Do the same for any test that mounts `App` or `TimeDisplay`, or it will hang or advance real time.
 

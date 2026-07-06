@@ -1,0 +1,66 @@
+name: Sync from Sub-repos
+
+on:
+  repository_dispatch:
+    types: [sync-kernel, sync-sdk, sync-apps]
+
+permissions:
+  contents: write
+
+jobs:
+  sync-from-kernel:
+    if: github.event.action == 'sync-kernel'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull kernel changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git remote add kernel https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/kernel.git || true
+          git fetch kernel main
+          
+          git subtree pull --prefix=kernel kernel main --allow-unrelated-histories -m "Sync kernel from sub-repo"
+          git push origin main
+
+  sync-from-sdk:
+    if: github.event.action == 'sync-sdk'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull sdk changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git remote add sdk https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/sdk.git || true
+          git fetch sdk main
+          
+          git subtree pull --prefix=sdk sdk main --allow-unrelated-histories -m "Sync sdk from sub-repo"
+          git push origin main
+
+  sync-from-apps:
+    if: github.event.action == 'sync-apps'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull apps changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git remote add apps https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/apps.git || true
+          git fetch apps main
+          
+          git subtree pull --prefix=apps apps main --allow-unrelated-histories -m "Sync apps from sub-repo"
+          git push origin main

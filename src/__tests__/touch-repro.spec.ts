@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import App from '../App.vue'
-import { i18n } from '../test-setup'
+import { i18n } from '@micronet/kernel'
 
 describe('Touch-through-App repro', () => {
   beforeEach(() => {

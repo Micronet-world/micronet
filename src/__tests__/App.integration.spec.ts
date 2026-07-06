@@ -2,11 +2,42 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import App from '../App.vue'
-import { i18n } from '../test-setup'
+import { i18n } from '@micronet/kernel'
+
+vi.mock('maplibre-gl', () => {
+  class Map {
+    addControl = vi.fn()
+    remove = vi.fn()
+    setStyle = vi.fn()
+    flyTo = vi.fn()
+    isStyleLoaded = vi.fn().mockReturnValue(true)
+    constructor() {}
+  }
+  class NavigationControl {}
+  class Marker {
+    setLngLat = vi.fn().mockReturnThis()
+    addTo = vi.fn().mockReturnThis()
+    remove = vi.fn()
+    constructor() {}
+  }
+  return { default: { Map, NavigationControl, Marker } }
+})
 
 describe('App Integration', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+
+    // Mock geolocation for maps tests
+    if (!navigator.geolocation) {
+      Object.defineProperty(navigator, 'geolocation', {
+        value: {
+          getCurrentPosition: vi.fn().mockImplementation((success: any) => {
+            success({ coords: { latitude: 40.7128, longitude: -74.006 } })
+          }),
+        },
+        configurable: true,
+      })
+    }
   })
 
   afterEach(() => {
@@ -138,6 +169,93 @@ describe('App Integration', () => {
     await swipeUp(wrapper, '.camera-screen')
 
     expect(wrapper.find('.camera-screen').exists()).toBe(false)
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
+  })
+
+  it('navigating from lock to camera then swiping up returns to home', async () => {
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
+
+    await wrapper.find('[aria-label="Camera"]').trigger('click')
+    await nextTick()
+    expect(wrapper.find('.camera-screen').exists()).toBe(true)
+
+    await swipeUp(wrapper, '.camera-screen')
+
+    expect(wrapper.find('.camera-screen').exists()).toBe(false)
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
+  })
+
+  it('full navigation cycle: lock to home to settings back to home to lock', async () => {
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
+
+    await swipeUp(wrapper, '.lock-screen')
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
+
+    await findAppIcon(wrapper, 'Settings')!.trigger('click')
+    await nextTick()
+    expect(wrapper.find('.settings-screen').exists()).toBe(true)
+
+    await swipeUp(wrapper, '.settings-screen')
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
+
+    await swipeDown(wrapper, '.home-screen')
+    expect(wrapper.find('.lock-screen').exists()).toBe(true)
+  })
+
+  it('double-tap camera button does not cause duplicate navigation', async () => {
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
+
+    await swipeUp(wrapper, '.lock-screen')
+    const cameraBtn = findAppIcon(wrapper, 'Camera')!
+    await cameraBtn.trigger('click')
+    await cameraBtn.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.camera-screen').exists()).toBe(true)
+    expect(wrapper.find('.home-screen').exists()).toBe(false)
+  })
+
+  it('navigating to photos from home screen', async () => {
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
+
+    await swipeUp(wrapper, '.lock-screen')
+    await findAppIcon(wrapper, 'Photos')!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.photos-screen').exists()).toBe(true)
+
+    await swipeUp(wrapper, '.photos-screen')
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
+  })
+
+  it('navigating to maps from home screen', async () => {
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
+
+    await swipeUp(wrapper, '.lock-screen')
+    await findAppIcon(wrapper, 'Maps')!.trigger('click')
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(200)
+
+    expect(wrapper.find('.maps-screen').exists()).toBe(true)
+
+    // MapsScreen uses a back button, not swipe gestures
+    const backBtn = wrapper.find('.back-btn')
+    await backBtn.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.home-screen').exists()).toBe(true)
+  })
+
+  it('navigating to calendar from home screen', async () => {
+    const wrapper = mount(App, { global: { plugins: [i18n] } })
+
+    await swipeUp(wrapper, '.lock-screen')
+    await findAppIcon(wrapper, 'Calendar')!.trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('.calendar-screen').exists()).toBe(true)
+
+    await swipeUp(wrapper, '.calendar-screen')
     expect(wrapper.find('.home-screen').exists()).toBe(true)
   })
 })

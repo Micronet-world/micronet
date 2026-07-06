@@ -1,0 +1,35 @@
+{
+  "name": "micronet-apps",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "Micronet built-in apps — lock screen, home, settings, camera, photos, maps, calendar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Micronet-world/apps.git"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "vue-tsc --declaration --emitDeclarationOnly && tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "dependencies": {
+    "micronet-kernel": "^1.0.0",
+    "micronet-sdk": "^1.0.0"
+  }
+}

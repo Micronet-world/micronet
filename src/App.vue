@@ -1,27 +1,56 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useScreenStack } from './composables/useScreenStack'
-import { getScreenPlugin } from './screens/registry'
+import {
+  provideKernel,
+  useKernelBridge,
+  useNavigation as kernelUseNavigation,
+  registerScreen as kernelRegisterScreen,
+  getRegisteredScreen,
+  getRegisteredScreens,
+  resetRegistry,
+  onNav,
+  resetBus,
+  registerScreenComponents,
+  getScreenComponent,
+  type KernelAPI,
+} from '@micronet/kernel'
+import { getAllAppComponents } from '@micronet/sdk'
+import { registerApps } from '@micronet/apps'
+import { getCurrentInstance } from 'vue'
 
-const { currentScreen, dispatch } = useScreenStack()
+const kernel: KernelAPI = {
+  useNavigation: kernelUseNavigation,
+  registerScreen: kernelRegisterScreen,
+  getRegisteredScreen,
+  getRegisteredScreens,
+  resetRegistry,
+  onNav,
+  resetBus,
+  registerScreenComponents,
+}
 
-const currentPlugin = computed(() => getScreenPlugin(currentScreen.value))
+const app = getCurrentInstance()!.appContext.app
+provideKernel(app, kernel)
 
-// Each screen declares its emit-name → navigation-intent mapping in the
-// registry; bind them all so App.vue never needs a per-screen v-if branch.
-const screenListeners = computed(() => {
-  const listeners: Record<string, () => void> = {}
-  for (const [eventName, intent] of Object.entries(currentPlugin.value.events)) {
-    listeners[eventName] = () => dispatch(intent)
-  }
-  return listeners
+registerApps(kernel)
+
+const { currentScreen, currentPlugin } = useKernelBridge()
+
+const activeComponent = computed(() => {
+  if (!currentPlugin.value) return null
+  const id = currentScreen.value
+  return getScreenComponent(id as any) || getAllAppComponents()[id] || null
 })
 </script>
 
 <template>
   <div class="app-container">
     <Transition name="slide-up">
-      <component :is="currentPlugin.component" :key="currentScreen" v-on="screenListeners" />
+      <component
+        v-if="activeComponent"
+        :is="activeComponent"
+        :key="currentScreen"
+      />
     </Transition>
   </div>
 </template>
