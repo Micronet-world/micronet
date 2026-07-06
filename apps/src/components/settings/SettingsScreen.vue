@@ -26,7 +26,6 @@ let navigateBackFn: () => void
 const { targetRef, dragProgress, swipeDirection, isDragging } =
   useSwipeGestures({
     onSwipeDown: () => lock(),
-    onSwipeUp: () => goHome(),
     onSwipeRight: () => {
       if (navigateBackFn) navigateBackFn()
     },
@@ -34,6 +33,12 @@ const { targetRef, dragProgress, swipeDirection, isDragging } =
       if (swipeDirection.value === 'down') return canSwipeDown()
       return true
     },
+  })
+
+const { targetRef: barTargetRef } =
+  useSwipeGestures({
+    onSwipeUp: () => goHome(),
+    threshold: 40,
   })
 
 // --- State ---
@@ -901,6 +906,14 @@ const deviceInfo = {
 
         </Transition>
       </div>
+
+      <!-- Home bar -->
+      <div
+        :ref="barTargetRef"
+        class="home-bar-area"
+      >
+        <div class="home-bar"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -1634,6 +1647,28 @@ const deviceInfo = {
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.5;
+}
+
+/* Home bar */
+.home-bar-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 12px 0 calc(env(safe-area-inset-bottom, 12px) + 4px);
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  touch-action: none;
+  cursor: grab;
+}
+
+.home-bar {
+  width: 134px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* === Responsive === */

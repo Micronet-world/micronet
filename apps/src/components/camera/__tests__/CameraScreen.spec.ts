@@ -80,10 +80,10 @@ describe('CameraScreen', () => {
     await nextTick()
     await nextTick()
 
-    // Swipe up triggers goHome()
-    const screen = wrapper.find('.camera-screen')
-    await screen.trigger('mousedown', { clientY: 300 })
-    window.dispatchEvent(new MouseEvent('mousemove', { clientY: 180 }))
+    // Swipe up on home bar triggers goHome()
+    const bar = wrapper.find('.home-bar-area')
+    await bar.trigger('mousedown', { clientY: 300 })
+    window.dispatchEvent(new MouseEvent('mousemove', { clientY: 220 }))
     window.dispatchEvent(new MouseEvent('mouseup'))
     await nextTick()
 

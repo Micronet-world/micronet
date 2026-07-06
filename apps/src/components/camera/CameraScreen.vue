@@ -13,9 +13,10 @@ const { t } = useI18n()
 
 const { targetRef, isDragging } =
   useSwipeGestures({
-    onSwipeUp: () => goHome(),
     onSwipeRight: () => goBack(),
   })
+
+const { targetRef: barTargetRef } = useSwipeGestures({ onSwipeUp: () => goHome(), threshold: 40 })
 
 // ─── Camera State ───────────────────────────────────────────────
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -984,6 +985,11 @@ onUnmounted(() => {
 
     <!-- Hidden canvas for photo capture -->
     <canvas ref="canvasRef" class="capture-canvas"></canvas>
+
+    <!-- Home Bar -->
+    <div class="home-bar-area" :ref="barTargetRef">
+      <div class="home-bar"></div>
+    </div>
   </div>
 </template>
 
@@ -1747,6 +1753,26 @@ onUnmounted(() => {
 /* ─── Hidden Canvas ──────────────────────────────────────────── */
 .capture-canvas {
   display: none;
+}
+
+.home-bar-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 4px);
+  background: transparent;
+  touch-action: none;
+}
+
+.home-bar {
+  width: 134px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* ─── Responsive ─────────────────────────────────────────────── */

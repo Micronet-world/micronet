@@ -8,9 +8,10 @@ const { t } = useI18n()
 const { goBack, goHome } = useNavigation()
 
 const { targetRef, isDragging } = useSwipeGestures({
-  onSwipeUp: () => goHome(),
   onSwipeRight: () => goBack(),
 })
+
+const { targetRef: barTargetRef } = useSwipeGestures({ onSwipeUp: () => goHome(), threshold: 40 })
 
 // ─── Tabs ───────────────────────────────────────────────────────
 type Tab = 'world' | 'alarm' | 'stopwatch' | 'timer'
@@ -823,10 +824,35 @@ const filteredCities = computed(() => {
         </div>
       </Transition>
     </div>
+
+    <!-- Home Bar -->
+    <div class="home-bar-area" :ref="barTargetRef">
+      <div class="home-bar"></div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.home-bar-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 4px);
+  background: transparent;
+  touch-action: none;
+}
+
+.home-bar {
+  width: 134px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
 .clock-screen {
   width: 100%;
   height: 100%;

@@ -9,9 +9,14 @@ const { t } = useI18n()
 const { goBack, goHome } = useNavigation()
 
 const { targetRef, isDragging } = useSwipeGestures({
-  onSwipeUp: () => goHome(),
   onSwipeRight: () => goBack(),
 })
+
+const { targetRef: barTargetRef } =
+  useSwipeGestures({
+    onSwipeUp: () => goHome(),
+    threshold: 40,
+  })
 
 const {
   addFolder, addFile, updateFile, deleteItem, deleteItems,
@@ -709,6 +714,14 @@ watch(searchQuery, (val) => {
           ></textarea>
         </div>
       </Transition>
+    </div>
+
+    <!-- Home Bar -->
+    <div
+      :ref="barTargetRef"
+      class="home-bar-area"
+    >
+      <div class="home-bar"></div>
     </div>
   </div>
 </template>
@@ -1573,6 +1586,27 @@ watch(searchQuery, (val) => {
 .slide-up-enter-from, .slide-up-leave-to {
   transform: translateY(100%);
   opacity: 0;
+}
+
+/* ─── Home Bar ─────────────────────────────────────────────── */
+.home-bar-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 4px);
+  display: flex;
+  justify-content: center;
+  z-index: 30;
+  background: transparent;
+  touch-action: none;
+}
+
+.home-bar {
+  width: 134px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* ─── Responsive ─────────────────────────────────────────────── */

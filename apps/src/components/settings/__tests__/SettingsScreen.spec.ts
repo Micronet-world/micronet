@@ -396,12 +396,12 @@ describe('SettingsScreen', () => {
       expect(navLog[0][0]).toEqual({ action: 'lock' })
     })
 
-    it('navigates home on upward swipe > 80px', async () => {
+    it('navigates home on upward swipe on home bar', async () => {
       const wrapper = mount(SettingsScreen, { global: { plugins: [i18n] } })
-      const screen = wrapper.find('.settings-screen')
+      const bar = wrapper.find('.home-bar-area')
 
-      await screen.trigger('mousedown', { clientY: 300 })
-      window.dispatchEvent(new MouseEvent('mousemove', { clientY: 200 }))
+      await bar.trigger('mousedown', { clientY: 300 })
+      window.dispatchEvent(new MouseEvent('mousemove', { clientY: 220 }))
       window.dispatchEvent(new MouseEvent('mouseup'))
 
       expect(navLog).toHaveLength(1)

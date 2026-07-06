@@ -53,6 +53,15 @@ describe('App Integration', () => {
     await nextTick()
   }
 
+  /** Helper: swipe up on the home bar to exit the current app */
+  async function swipeUpHomeBar(wrapper: ReturnType<typeof mount>, distance = 60) {
+    const bar = wrapper.find('.home-bar-area')
+    await bar.trigger('mousedown', { clientY: 300 })
+    window.dispatchEvent(new MouseEvent('mousemove', { clientY: 300 - distance }))
+    window.dispatchEvent(new MouseEvent('mouseup'))
+    await nextTick()
+  }
+
   /** Helper: swipe down on a wrapper element */
   async function swipeDown(wrapper: ReturnType<typeof mount>, selector: string, distance = 100) {
     const el = wrapper.find(selector)
@@ -110,7 +119,7 @@ describe('App Integration', () => {
     await findAppIcon(wrapper, 'Settings')!.trigger('click')
     await nextTick()
 
-    await swipeUp(wrapper, '.settings-screen')
+    await swipeUpHomeBar(wrapper)
 
     expect(wrapper.find('.settings-screen').exists()).toBe(false)
     expect(wrapper.find('.home-screen').exists()).toBe(true)
@@ -165,8 +174,8 @@ describe('App Integration', () => {
     await nextTick()
     expect(wrapper.find('.camera-screen').exists()).toBe(true)
 
-    // Swipe up on the camera — should close it and return to home
-    await swipeUp(wrapper, '.camera-screen')
+    // Swipe up on the home bar — should close camera and return to home
+    await swipeUpHomeBar(wrapper)
 
     expect(wrapper.find('.camera-screen').exists()).toBe(false)
     expect(wrapper.find('.home-screen').exists()).toBe(true)
@@ -179,7 +188,7 @@ describe('App Integration', () => {
     await nextTick()
     expect(wrapper.find('.camera-screen').exists()).toBe(true)
 
-    await swipeUp(wrapper, '.camera-screen')
+    await swipeUpHomeBar(wrapper)
 
     expect(wrapper.find('.camera-screen').exists()).toBe(false)
     expect(wrapper.find('.home-screen').exists()).toBe(true)
@@ -195,7 +204,7 @@ describe('App Integration', () => {
     await nextTick()
     expect(wrapper.find('.settings-screen').exists()).toBe(true)
 
-    await swipeUp(wrapper, '.settings-screen')
+    await swipeUpHomeBar(wrapper)
     expect(wrapper.find('.home-screen').exists()).toBe(true)
 
     await swipeDown(wrapper, '.home-screen')
@@ -224,7 +233,7 @@ describe('App Integration', () => {
 
     expect(wrapper.find('.photos-screen').exists()).toBe(true)
 
-    await swipeUp(wrapper, '.photos-screen')
+    await swipeUpHomeBar(wrapper)
     expect(wrapper.find('.home-screen').exists()).toBe(true)
   })
 
@@ -255,7 +264,7 @@ describe('App Integration', () => {
 
     expect(wrapper.find('.calendar-screen').exists()).toBe(true)
 
-    await swipeUp(wrapper, '.calendar-screen')
+    await swipeUpHomeBar(wrapper)
     expect(wrapper.find('.home-screen').exists()).toBe(true)
   })
 })

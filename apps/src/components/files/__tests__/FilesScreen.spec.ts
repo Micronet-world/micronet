@@ -490,11 +490,11 @@ describe('FilesScreen', () => {
   })
 
   describe('Navigation', () => {
-    it('navigates home on swipe up', async () => {
+    it('navigates home on swipe up on home bar', async () => {
       const wrapper = mountScreen()
-      const screen = wrapper.find('.files-screen')
-      await screen.trigger('mousedown', { clientY: 300 })
-      window.dispatchEvent(new MouseEvent('mousemove', { clientY: 100 }))
+      const bar = wrapper.find('.home-bar-area')
+      await bar.trigger('mousedown', { clientY: 300 })
+      window.dispatchEvent(new MouseEvent('mousemove', { clientY: 220 }))
       window.dispatchEvent(new MouseEvent('mouseup'))
       expect(navLog).toHaveLength(1)
       expect(navLog[0][0]).toEqual({ action: 'home' })

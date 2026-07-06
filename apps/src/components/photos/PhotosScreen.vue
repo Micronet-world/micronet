@@ -16,10 +16,15 @@ const viewerOpen = ref(false)
 
 const { targetRef, isDragging } =
   useSwipeGestures({
-    onSwipeUp: () => goHome(),
     onSwipeRight: () => goBack(),
     canSwipeVertical: () => !viewerOpen.value,
     canSwipeHorizontal: () => !viewerOpen.value,
+  })
+
+const { targetRef: barTargetRef } =
+  useSwipeGestures({
+    onSwipeUp: () => goHome(),
+    threshold: 40,
   })
 
 // ─── Filter Tabs ────────────────────────────────────────────────
@@ -611,7 +616,11 @@ function handleDoubleTap() {
     </Transition>
 
     <!-- Home Bar -->
-    <div class="home-bar-area" v-if="!viewerOpen">
+    <div
+      v-if="!viewerOpen"
+      :ref="barTargetRef"
+      class="home-bar-area"
+    >
       <div class="home-bar"></div>
     </div>
   </div>
@@ -1104,17 +1113,23 @@ function handleDoubleTap() {
 
 /* ─── Home Bar ───────────────────────────────────────────────── */
 .home-bar-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 4px);
   display: flex;
   justify-content: center;
-  flex-shrink: 0;
+  z-index: 30;
+  background: transparent;
+  touch-action: none;
 }
 
 .home-bar {
   width: 134px;
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.15);
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* ─── Transitions ────────────────────────────────────────────── */

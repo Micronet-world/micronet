@@ -63,10 +63,10 @@ describe('PhotosScreen', () => {
     const wrapper = mount(PhotosScreen, { global: { plugins: [i18n] } })
     await nextTick()
 
-    // Swipe up triggers goHome()
-    const screen = wrapper.find('.photos-screen')
-    await screen.trigger('mousedown', { clientY: 300 })
-    window.dispatchEvent(new MouseEvent('mousemove', { clientY: 180 }))
+    // Swipe up on home bar triggers goHome()
+    const bar = wrapper.find('.home-bar-area')
+    await bar.trigger('mousedown', { clientY: 300 })
+    window.dispatchEvent(new MouseEvent('mousemove', { clientY: 220 }))
     window.dispatchEvent(new MouseEvent('mouseup'))
     await nextTick()
 
