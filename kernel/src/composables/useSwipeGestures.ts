@@ -12,6 +12,11 @@ export interface SwipeOptions {
    *  fires, the matching `onSwipeUp` is suppressed on release. */
   onHoldUp?: () => void
   holdDelay?: number
+  /** Fires in the pointer-end handler *before* the swipe callback.
+   *  Runs inside the original user-gesture event (touchend / mouseup),
+   *  so browser APIs that require a transient activation (e.g.
+   *  requestFullscreen) are still available. */
+  onSwipeUpStart?: () => void
 }
 
 function getXY(e: TouchEvent | MouseEvent): { x: number; y: number } {
@@ -34,6 +39,7 @@ export function useSwipeGestures(options: SwipeOptions) {
     canSwipeHorizontal,
     onHoldUp,
     holdDelay = 250,
+    onSwipeUpStart,
   } = options
 
   const dragProgress = ref(0)
@@ -145,8 +151,10 @@ export function useSwipeGestures(options: SwipeOptions) {
     if (!holdFired) {
       if (lockedAxis === 'y') {
         const vertOk = canSwipeVertical ? canSwipeVertical() : true
-        if (vertOk && dy < -threshold && onSwipeUp) onSwipeUp()
-        else if (vertOk && dy > threshold && onSwipeDown) onSwipeDown()
+        if (vertOk && dy < -threshold) {
+          onSwipeUpStart?.()
+          onSwipeUp?.()
+        } else if (vertOk && dy > threshold && onSwipeDown) onSwipeDown()
       } else if (lockedAxis === 'x') {
         const horizOk = canSwipeHorizontal ? canSwipeHorizontal() : true
         if (horizOk && dx > threshold && onSwipeRight) onSwipeRight()

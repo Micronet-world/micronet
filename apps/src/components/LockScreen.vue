@@ -10,6 +10,9 @@ const { goTo } = useNavigation()
 
 const { targetRef, dragProgress, isDragging } =
   useSwipeGestures({
+    onSwipeUpStart: () => {
+      document.documentElement.requestFullscreen?.().catch(() => {})
+    },
     onSwipeUp: () => goTo('home'),
   })
 </script>

@@ -311,4 +311,54 @@ describe('useSwipeGestures', () => {
     expect(onHoldUp).toHaveBeenCalledOnce()
     el.dispatchEvent(createTouchEvent('touchend', 100, 90))
   })
+
+  it('onSwipeUpStart fires before onSwipeUp on swipe up', () => {
+    const callOrder: string[] = []
+    const onSwipeUpStart = vi.fn(() => callOrder.push('start'))
+    const onSwipeUp = vi.fn(() => callOrder.push('swipe'))
+    const { wrapper } = createGestureComponent({ onSwipeUp, onSwipeUpStart, threshold: 80 })
+    const el = wrapper.element as HTMLElement
+    el.dispatchEvent(createTouchEvent('touchstart', 100, 300, el))
+    el.dispatchEvent(createTouchEvent('touchmove', 100, 200, el))
+    el.dispatchEvent(createTouchEvent('touchmove', 100, 100, el))
+    el.dispatchEvent(createTouchEvent('touchend', 100, 100))
+    expect(onSwipeUpStart).toHaveBeenCalledOnce()
+    expect(onSwipeUp).toHaveBeenCalledOnce()
+    expect(callOrder).toEqual(['start', 'swipe'])
+  })
+
+  it('onSwipeUpStart does NOT fire on short swipe', () => {
+    const onSwipeUpStart = vi.fn()
+    const onSwipeUp = vi.fn()
+    const { wrapper } = createGestureComponent({ onSwipeUp, onSwipeUpStart, threshold: 80 })
+    const el = wrapper.element as HTMLElement
+    el.dispatchEvent(createTouchEvent('touchstart', 100, 300, el))
+    el.dispatchEvent(createTouchEvent('touchmove', 100, 250, el))
+    el.dispatchEvent(createTouchEvent('touchend', 100, 250))
+    expect(onSwipeUpStart).not.toHaveBeenCalled()
+    expect(onSwipeUp).not.toHaveBeenCalled()
+  })
+
+  it('onSwipeUpStart does NOT fire on swipe down', () => {
+    const onSwipeUpStart = vi.fn()
+    const onSwipeDown = vi.fn()
+    const { wrapper } = createGestureComponent({ onSwipeDown, onSwipeUpStart, threshold: 80 })
+    const el = wrapper.element as HTMLElement
+    el.dispatchEvent(createTouchEvent('touchstart', 100, 100, el))
+    el.dispatchEvent(createTouchEvent('touchmove', 100, 200, el))
+    el.dispatchEvent(createTouchEvent('touchmove', 100, 300, el))
+    el.dispatchEvent(createTouchEvent('touchend', 100, 300))
+    expect(onSwipeUpStart).not.toHaveBeenCalled()
+  })
+
+  it('onSwipeUpStart fires even when onSwipeUp is not provided', () => {
+    const onSwipeUpStart = vi.fn()
+    const { wrapper } = createGestureComponent({ onSwipeUpStart, threshold: 80 })
+    const el = wrapper.element as HTMLElement
+    el.dispatchEvent(createTouchEvent('touchstart', 100, 300, el))
+    el.dispatchEvent(createTouchEvent('touchmove', 100, 200, el))
+    el.dispatchEvent(createTouchEvent('touchmove', 100, 100, el))
+    el.dispatchEvent(createTouchEvent('touchend', 100, 100))
+    expect(onSwipeUpStart).toHaveBeenCalledOnce()
+  })
 })
