@@ -18,7 +18,7 @@ export default {
     stopNotify: '停止通知',
   },
   time: {
-    dateFormat: '{month}月{date}日 {day}',
+    dateFormat: '{monthNum}月{date}日 {day}',
     days: {
       sunday: '星期日',
       monday: '星期一',

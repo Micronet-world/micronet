@@ -19,6 +19,7 @@ const updateTime = () => {
   date.value = format
     .replace('{day}', t(`time.days.${dayKeys[now.getDay()]}`))
     .replace('{month}', t(`time.months.${monthKeys[now.getMonth()]}`))
+    .replace('{monthNum}', String(now.getMonth() + 1))
     .replace('{date}', String(now.getDate()))
 }
 
