@@ -26,6 +26,11 @@ export { useFileStore } from './composables/useFileStore'
 export type { FileItem, FileType } from './composables/useFileStore'
 export { useBluetooth } from './composables/useBluetooth'
 export type { BTDevice, BTCharacteristic } from './composables/useBluetooth'
+export { useKeyboard } from './composables/useKeyboard'
+export type { KeyboardLayout, KeyboardOptions } from './composables/useKeyboard'
+
+// Components
+export { default as KeyboardView } from './components/KeyboardView.vue'
 
 // i18n (independent Vue plugin)
 export { default as i18n, setLocale, getLocale } from './i18n'

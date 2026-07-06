@@ -12,6 +12,7 @@ import {
   resetBus,
   registerScreenComponents,
   getScreenComponent,
+  KeyboardView,
   type KernelAPI,
 } from '@micronet/kernel'
 import { getAllAppComponents } from '@micronet/sdk'
@@ -52,6 +53,7 @@ const activeComponent = computed(() => {
         :key="currentScreen"
       />
     </Transition>
+    <KeyboardView />
   </div>
 </template>
 

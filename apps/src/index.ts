@@ -12,6 +12,8 @@ import * as notesReg from './components/notes/NotesScreen.register'
 import * as clockReg from './components/clock/ClockScreen.register'
 import * as filesReg from './components/files/FilesScreen.register'
 import * as weatherReg from './components/weather/WeatherScreen.register'
+import * as calculatorReg from './components/calculator/CalculatorScreen.register'
+import * as compassReg from './components/compass/CompassScreen.register'
 
 import LockScreen from './components/LockScreen.vue'
 import HomeScreen from './components/home/HomeScreen.vue'
@@ -24,10 +26,12 @@ import NotesScreen from './components/notes/NotesScreen.vue'
 import ClockScreen from './components/clock/ClockScreen.vue'
 import FilesScreen from './components/files/FilesScreen.vue'
 import WeatherScreen from './components/weather/WeatherScreen.vue'
+import CalculatorScreen from './components/calculator/CalculatorScreen.vue'
+import CompassScreen from './components/compass/CompassScreen.vue'
 
 const registrations = [
   lockReg, homeReg, settingsReg, cameraReg, photosReg, mapsReg, calendarReg, notesReg,
-  clockReg, filesReg, weatherReg,
+  clockReg, filesReg, weatherReg, calculatorReg, compassReg,
 ]
 
 export const screenComponents: Record<string, Component> = {
@@ -42,6 +46,8 @@ export const screenComponents: Record<string, Component> = {
   clock: ClockScreen,
   files: FilesScreen,
   weather: WeatherScreen,
+  calculator: CalculatorScreen,
+  compass: CompassScreen,
 }
 
 export function registerApps(kernel: KernelAPI): void {

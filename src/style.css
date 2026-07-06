@@ -90,3 +90,13 @@ button {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* Keyboard-aware layout adjustments */
+body.keyboard-visible .modal-body {
+  padding-bottom: 280px;
+}
+
+body.keyboard-visible .modal {
+  align-items: flex-start;
+  padding-top: 5vh;
+}

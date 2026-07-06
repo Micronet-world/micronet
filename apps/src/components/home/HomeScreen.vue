@@ -125,6 +125,31 @@ const { targetRef: barTargetRef } =
           <span class="app-name">{{ t('home.weather') }}</span>
         </button>
 
+        <button class="app-icon" @click="goTo('calculator')">
+          <div class="icon-wrapper calculator-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="4" y="2" width="16" height="20" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="8" y1="6" x2="16" y2="6" stroke-linecap="round"/>
+              <line x1="8" y1="10" x2="10" y2="10" stroke-linecap="round"/>
+              <line x1="14" y1="10" x2="16" y2="10" stroke-linecap="round"/>
+              <line x1="8" y1="14" x2="10" y2="14" stroke-linecap="round"/>
+              <line x1="14" y1="14" x2="16" y2="14" stroke-linecap="round"/>
+              <line x1="8" y1="18" x2="16" y2="18" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="app-name">{{ t('home.calculator') }}</span>
+        </button>
+
+        <button class="app-icon" @click="goTo('compass')">
+          <div class="icon-wrapper compass-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="app-name">{{ t('home.compass') }}</span>
+        </button>
+
         <button class="app-icon" @click="goTo('settings')">
           <div class="icon-wrapper settings-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -264,6 +289,11 @@ const { targetRef: barTargetRef } =
 .weather-icon {
   background: linear-gradient(135deg, #e9e5df 0%, #dedad4 100%);
   color: #6b6560;
+}
+
+.calculator-icon {
+  background: linear-gradient(135deg, #e8e4de 0%, #ddd9d3 100%);
+  color: #635e59;
 }
 
 .icon-wrapper svg {
