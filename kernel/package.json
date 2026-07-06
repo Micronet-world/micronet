@@ -22,10 +22,15 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "vue-tsc --declaration --emitDeclarationOnly && tsc",
+    "prebuild": "rm -rf dist",
+    "build": "tsc",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2"
   }
 }
