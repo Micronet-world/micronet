@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSwipeGestures, storage } from 'micronet-kernel'
 import { useNavigation } from '../../kernel'
@@ -290,19 +290,6 @@ function getWeatherEmoji(code: number, isDay: boolean = true): string {
   return '🌤'
 }
 
-function getWeatherIcon(code: number, isDay: boolean = true): string {
-  if (code === 0) return isDay ? 'sun' : 'moon'
-  if (code === 1) return isDay ? 'sun' : 'moon'
-  if (code === 2) return 'cloud-sun'
-  if (code === 3) return 'cloud'
-  if (code === 45 || code === 48) return 'cloud-fog'
-  if (code >= 51 && code <= 67) return 'cloud-rain'
-  if (code >= 71 && code <= 77) return 'cloud-snow'
-  if (code >= 80 && code <= 86) return 'cloud-drizzle'
-  if (code >= 95) return 'cloud-lightning'
-  return 'sun'
-}
-
 // ─── Formatting ─────────────────────────────────────────────────
 function tempRound(v: number): string {
   return Math.round(v) + '°'
@@ -314,7 +301,6 @@ function formatDate(dateStr: string): string {
   today.setHours(0, 0, 0, 0)
   const diff = Math.round((d.getTime() - today.getTime()) / 86400000)
   if (diff === 0) return t('weather.today')
-  const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
   return d.toLocaleDateString(undefined, { weekday: 'short' })
 }
 
@@ -531,7 +517,7 @@ onUnmounted(() => {
             <span>{{ t('weather.forecast') }}</span>
           </div>
           <div class="forecast-list">
-            <div v-for="(day, i) in weatherData.daily" :key="day.date" class="forecast-row">
+            <div v-for="day in weatherData.daily" :key="day.date" class="forecast-row">
               <span class="forecast-day">{{ formatDate(day.date) }}</span>
               <span class="forecast-icon">{{ getWeatherEmoji(day.weatherCode, true) }}</span>
               <div class="forecast-bar-wrap">

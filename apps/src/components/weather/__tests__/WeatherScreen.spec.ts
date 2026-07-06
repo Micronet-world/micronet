@@ -61,7 +61,7 @@ describe('WeatherScreen', () => {
     offNav = onNav((msg) => { navLog.push([msg]) })
 
     fetchSpy = vi.fn()
-    global.fetch = fetchSpy
+    vi.stubGlobal('fetch', fetchSpy)
 
     fetchSpy.mockImplementation((url: string) => {
       if (url.includes('geocoding-api.open-meteo.com')) {
