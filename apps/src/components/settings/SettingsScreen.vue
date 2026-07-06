@@ -1656,9 +1656,11 @@ const deviceInfo = {
   left: 0;
   right: 0;
   z-index: 100;
-  padding: 12px 0 calc(env(safe-area-inset-bottom, 12px) + 4px);
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 8px);
   background: transparent;
   touch-action: none;
   cursor: grab;

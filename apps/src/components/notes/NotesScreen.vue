@@ -425,9 +425,12 @@ function autoResize(e: Event) {
   z-index: 50;
   display: flex;
   justify-content: center;
-  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 4px);
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 8px);
   background: transparent;
   touch-action: none;
+  cursor: grab;
 }
 
 .home-bar {

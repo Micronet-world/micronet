@@ -270,9 +270,18 @@ const { targetRef: barTargetRef } =
 
 /* Home bar */
 .home-bar-area {
-  padding: 12px 0 calc(env(safe-area-inset-bottom, 12px) + 4px);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 8px);
+  background: transparent;
+  touch-action: none;
   cursor: grab;
 }
 

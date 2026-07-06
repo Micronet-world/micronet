@@ -1594,12 +1594,15 @@ watch(searchQuery, (val) => {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 4px);
+  z-index: 30;
   display: flex;
   justify-content: center;
-  z-index: 30;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 0 calc(env(safe-area-inset-bottom, 8px) + 8px);
   background: transparent;
   touch-action: none;
+  cursor: grab;
 }
 
 .home-bar {
