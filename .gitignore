@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# TypeScript declaration build artifacts — these belong in dist/, never in src/.
+# (kernel/sdk/apps tsconfigs emit declarations; guard against them leaking into src/)
+kernel/src/**/*.d.ts
+kernel/src/**/*.d.ts.map
+sdk/src/**/*.d.ts
+sdk/src/**/*.d.ts.map
+apps/src/**/*.d.ts
+apps/src/**/*.d.ts.map
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

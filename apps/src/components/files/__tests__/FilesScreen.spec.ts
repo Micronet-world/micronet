@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import FilesScreen from '../FilesScreen.vue'
-import { i18n, resetBus, onNav, useFileStore } from 'micronet-kernel'
-import type { NavRequest } from 'micronet-kernel'
+import { i18n, resetBus, onNav, useFileStore } from '@micronet/kernel'
+import type { NavRequest } from '@micronet/kernel'
 
 vi.mock('../../../composables/storage', () => ({
   storage: {

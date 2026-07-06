@@ -137,10 +137,10 @@ When making changes to a package:
 
 ```typescript
 // Types first
-import type { ScreenMeta, NavIntent } from 'micronet-kernel'
+import type { ScreenMeta, NavIntent } from '@micronet/kernel'
 
 // Then values
-import { useNavigation, registerScreen } from 'micronet-kernel'
+import { useNavigation, registerScreen } from '@micronet/kernel'
 
 // Vue imports
 import { ref, computed } from 'vue'
@@ -170,7 +170,7 @@ src/
 For screen components, use the `onNav` middleware to capture navigation requests:
 
 ```typescript
-import { onNav, resetBus } from 'micronet-kernel'
+import { onNav, resetBus } from '@micronet/kernel'
 import { mount } from '@vue/test-utils'
 import LockScreen from '../LockScreen.vue'
 

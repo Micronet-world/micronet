@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import TimeDisplay from '../TimeDisplay.vue'
-import { i18n } from '../../index'
+import { i18n } from '@micronet/kernel'
 
 describe('TimeDisplay', () => {
   beforeEach(() => {

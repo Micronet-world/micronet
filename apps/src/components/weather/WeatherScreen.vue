@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSwipeGestures, storage } from 'micronet-kernel'
+import { useSwipeGestures, storage } from '@micronet/kernel'
 import { useNavigation } from '../../kernel'
 
 const { t } = useI18n()
@@ -279,19 +279,148 @@ function getWeatherDescription(code: number): string {
   return map[code] || t('weather.unknown')
 }
 
-function getWeatherEmoji(code: number, isDay: boolean = true): string {
-  if (code === 0) return isDay ? '☀️' : '🌙'
-  if (code === 1) return isDay ? '🌤' : '🌙'
-  if (code === 2) return '⛅'
-  if (code === 3) return '☁️'
-  if (code === 45 || code === 48) return '🌫'
-  if (code >= 51 && code <= 57) return '🌧'
-  if (code >= 61 && code <= 67) return '🌧'
-  if (code >= 71 && code <= 77) return '❄️'
-  if (code >= 80 && code <= 82) return '🌦'
-  if (code >= 85 && code <= 86) return '🌨'
-  if (code >= 95) return '⛈'
-  return '🌤'
+// ─── Weather SVG Icons ───────────────────────────────────────────
+interface WeatherIconData {
+  viewBox: string
+  paths: string[]
+  fills?: string[]
+}
+
+function getWeatherIcon(code: number, isDay: boolean = true): WeatherIconData {
+  if (code === 0) {
+    if (isDay) {
+      return {
+        viewBox: '0 0 64 64',
+        paths: [
+          'M32 4v8M32 52v8M4.93 4.93l5.66 5.66M53.41 53.41l5.66 5.66M4 32h8M52 32h8M4.93 59.07l5.66-5.66M53.41 10.59l5.66-5.66',
+        ],
+        fills: ['none'],
+      }
+    }
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M32 8c-13.25 0-24 10.75-24 24s10.75 24 24 24 24-10.75 24-24S45.25 8 32 8z',
+        'M32 16c-2 0-4 4-4 8s2 8 4 8 4-4 4-8-2-8-4-8z',
+      ],
+      fills: ['none', 'currentColor'],
+    }
+  }
+  if (code === 1) {
+    if (isDay) {
+      return {
+        viewBox: '0 0 64 64',
+        paths: [
+          'M20 8v6M8.5 13.5l4.24 4.24M8 26h6M8.5 38.5l4.24-4.24M20 44v6M31.5 38.5l4.24 4.24M38 38h6',
+          'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+        ],
+        fills: ['none', 'none'],
+      }
+    }
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M32 8c-2 0-4 4-4 8s2 8 4 8 4-4 4-8-2-8-4-8z',
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+      ],
+      fills: ['currentColor', 'none'],
+    }
+  }
+  if (code === 2) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+      ],
+      fills: ['none'],
+    }
+  }
+  if (code === 3) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+      ],
+      fills: ['currentColor'],
+    }
+  }
+  if (code === 45 || code === 48) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+        'M16 40h32M12 48h40M20 56h24',
+      ],
+      fills: ['none', 'none'],
+    }
+  }
+  if (code >= 51 && code <= 57) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+        'M24 42v6M32 42v6M40 42v6',
+      ],
+      fills: ['none', 'none'],
+    }
+  }
+  if (code >= 61 && code <= 67) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+        'M20 42v8M28 42v8M36 42v8M44 42v8',
+      ],
+      fills: ['none', 'none'],
+    }
+  }
+  if (code >= 71 && code <= 77) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+        'M24 42l-2 4 2 4M32 42l-2 4 2 4M40 42l-2 4 2 4',
+      ],
+      fills: ['none', 'none'],
+    }
+  }
+  if (code >= 80 && code <= 82) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+        'M20 42v10M28 42v10M36 42v10M44 42v10',
+      ],
+      fills: ['none', 'none'],
+    }
+  }
+  if (code >= 85 && code <= 86) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+        'M22 42l-3 6 3 6M32 42l-3 6 3 6M42 42l-3 6 3 6',
+      ],
+      fills: ['none', 'none'],
+    }
+  }
+  if (code >= 95) {
+    return {
+      viewBox: '0 0 64 64',
+      paths: [
+        'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+        'M30 38l-4 8h8l-4 8',
+      ],
+      fills: ['none', 'none'],
+    }
+  }
+  return {
+    viewBox: '0 0 64 64',
+    paths: [
+      'M42 28c0-7.18-5.82-13-13-13-1.2 0-2.36.17-3.46.47A18 18 0 0 0 18 18c-9.94 0-18 8.06-18 18s8.06 18 18 18h24c6.63 0 12-5.37 12-12s-5.37-12-12-12z',
+    ],
+    fills: ['none'],
+  }
 }
 
 // ─── Formatting ─────────────────────────────────────────────────
@@ -454,9 +583,26 @@ onUnmounted(() => {
 
       <!-- Weather Content -->
       <div v-else-if="weatherData" class="weather-body" @click="showSearch = false; showSavedLocations = false">
-        <!-- Current Weather -->
+          <!-- Current Weather -->
         <div class="current-section">
-          <div class="current-icon">{{ getWeatherEmoji(weatherData.current.weatherCode, weatherData.current.isDay) }}</div>
+          <div class="current-icon">
+            <svg
+              :viewBox="getWeatherIcon(weatherData.current.weatherCode, weatherData.current.isDay).viewBox"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="weather-svg-icon large"
+            >
+              <path
+                v-for="(path, i) in getWeatherIcon(weatherData.current.weatherCode, weatherData.current.isDay).paths"
+                :key="i"
+                :d="path"
+                :fill="getWeatherIcon(weatherData.current.weatherCode, weatherData.current.isDay).fills?.[i] || 'none'"
+              />
+            </svg>
+          </div>
           <div class="current-temp">{{ tempRound(weatherData.current.temperature) }}</div>
           <div class="current-desc">{{ getWeatherDescription(weatherData.current.weatherCode) }}</div>
           <div class="current-feels">{{ t('weather.feelsLike') }} {{ tempRound(weatherData.current.apparentTemperature) }}</div>
@@ -523,7 +669,24 @@ onUnmounted(() => {
           <div class="forecast-list">
             <div v-for="day in weatherData.daily" :key="day.date" class="forecast-row">
               <span class="forecast-day">{{ formatDate(day.date) }}</span>
-              <span class="forecast-icon">{{ getWeatherEmoji(day.weatherCode, true) }}</span>
+              <span class="forecast-icon">
+                <svg
+                  :viewBox="getWeatherIcon(day.weatherCode, true).viewBox"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="weather-svg-icon"
+                >
+                  <path
+                    v-for="(path, i) in getWeatherIcon(day.weatherCode, true).paths"
+                    :key="i"
+                    :d="path"
+                    :fill="getWeatherIcon(day.weatherCode, true).fills?.[i] || 'none'"
+                  />
+                </svg>
+              </span>
               <div class="forecast-bar-wrap">
                 <span class="forecast-low">{{ tempRound(day.tempMin) }}</span>
                 <div class="forecast-bar">
@@ -946,6 +1109,17 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 
+.weather-svg-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--color-text);
+}
+
+.weather-svg-icon.large {
+  width: 64px;
+  height: 64px;
+}
+
 .current-temp {
   font-size: 80px;
   font-weight: 200;
@@ -1084,6 +1258,10 @@ onUnmounted(() => {
   font-size: 20px;
   margin: 0 12px;
   width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 

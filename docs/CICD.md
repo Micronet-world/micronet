@@ -190,9 +190,9 @@ Monitor workflow runs in the Actions tab:
 ### npm Packages
 
 Monitor published packages:
-- [micronet-kernel](https://www.npmjs.com/package/micronet-kernel)
-- [micronet-sdk](https://www.npmjs.com/package/micronet-sdk)
-- [micronet-apps](https://www.npmjs.com/package/micronet-apps)
+- [@micronet/kernel](https://www.npmjs.com/package/@micronet/kernel)
+- [@micronet/sdk](https://www.npmjs.com/package/@micronet/sdk)
+- [@micronet/apps](https://www.npmjs.com/package/@micronet/apps)
 
 ## Best Practices
 

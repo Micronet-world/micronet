@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import StatusBar from '../StatusBar.vue'
-import { useSwipeGestures } from 'micronet-kernel'
+import { useSwipeGestures } from '@micronet/kernel'
 import { useI18n } from 'vue-i18n'
 import { useNavigation } from '../../kernel'
 

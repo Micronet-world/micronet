@@ -2,9 +2,9 @@
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { usePhotoStore } from 'micronet-kernel'
-import type { PhotoMetadata } from 'micronet-kernel'
-import { useSwipeGestures } from 'micronet-kernel'
+import { usePhotoStore } from '@micronet/kernel'
+import type { PhotoMetadata } from '@micronet/kernel'
+import { useSwipeGestures } from '@micronet/kernel'
 import { useNavigation } from '../../kernel'
 
 const { goBack, goHome } = useNavigation()

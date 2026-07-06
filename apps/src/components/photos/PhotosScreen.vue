@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { usePhotoStore, type Photo } from 'micronet-kernel'
-import type { PhotoMetadata } from 'micronet-kernel'
-import { useSwipeGestures } from 'micronet-kernel'
+import { usePhotoStore, type Photo } from '@micronet/kernel'
+import type { PhotoMetadata } from '@micronet/kernel'
+import { useSwipeGestures } from '@micronet/kernel'
 import { useNavigation } from '../../kernel'
 
 const { t } = useI18n()

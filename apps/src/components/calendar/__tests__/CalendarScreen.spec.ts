@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import CalendarScreen from '../CalendarScreen.vue'
-import { useCalendarStore } from 'micronet-kernel'
-import { i18n } from 'micronet-kernel'
+import { useCalendarStore } from '@micronet/kernel'
+import { i18n } from '@micronet/kernel'
 
 vi.mock('../../../composables/storage', () => ({
   storage: {

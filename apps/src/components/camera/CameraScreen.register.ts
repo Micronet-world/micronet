@@ -1,4 +1,4 @@
-import type { ScreenMeta, NavIntent } from 'micronet-kernel'
+import type { ScreenMeta, NavIntent } from '@micronet/kernel'
 
 export const meta: ScreenMeta = {
   id: 'camera', label: 'Camera', color: '#1a1a1a', icon: '📷',

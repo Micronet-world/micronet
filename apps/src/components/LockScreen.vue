@@ -3,7 +3,7 @@ import StatusBar from './StatusBar.vue'
 import TimeDisplay from './TimeDisplay.vue'
 import BottomActions from './BottomActions.vue'
 import SwipeIndicator from './SwipeIndicator.vue'
-import { useSwipeGestures } from 'micronet-kernel'
+import { useSwipeGestures } from '@micronet/kernel'
 import { useNavigation } from '../kernel'
 
 const { goTo } = useNavigation()

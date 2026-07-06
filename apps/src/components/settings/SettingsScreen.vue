@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import StatusBar from '../StatusBar.vue'
 import { ref, computed } from 'vue'
-import { useSwipeGestures } from 'micronet-kernel'
-import { useBluetooth } from 'micronet-kernel'
-import type { BTDevice, BTCharacteristic } from 'micronet-kernel'
+import { useSwipeGestures } from '@micronet/kernel'
+import { useBluetooth } from '@micronet/kernel'
+import type { BTDevice, BTCharacteristic } from '@micronet/kernel'
 import { useI18n } from 'vue-i18n'
 
-import { setLocale, getLocale } from 'micronet-kernel'
+import { setLocale, getLocale } from '@micronet/kernel'
 import { useNavigation } from '../../kernel'
 
 const { t } = useI18n()

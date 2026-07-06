@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import type { KernelAPI } from 'micronet-kernel'
+import type { KernelAPI } from '@micronet/kernel'
 
 import * as lockReg from './components/LockScreen.register'
 import * as homeReg from './components/home/HomeScreen.register'

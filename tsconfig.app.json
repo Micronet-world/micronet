@@ -10,13 +10,7 @@
       "@micronet/sdk/*": ["./sdk/src/*"],
       "@micronet/sdk": ["./sdk/src/index.ts"],
       "@micronet/apps/*": ["./apps/src/*"],
-      "@micronet/apps": ["./apps/src/index.ts"],
-      "micronet-kernel/*": ["./kernel/src/*"],
-      "micronet-kernel": ["./kernel/src/index.ts"],
-      "micronet-sdk/*": ["./sdk/src/*"],
-      "micronet-sdk": ["./sdk/src/index.ts"],
-      "micronet-apps/*": ["./apps/src/*"],
-      "micronet-apps": ["./apps/src/index.ts"]
+      "@micronet/apps": ["./apps/src/index.ts"]
     },
 
     /* Linting */

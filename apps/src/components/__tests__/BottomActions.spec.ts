@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BottomActions from '../BottomActions.vue'
-import { i18n, onNav, resetBus } from '../../index'
-import type { NavRequest } from '../../index'
+import { i18n, onNav, resetBus, type NavRequest } from '@micronet/kernel'
 
 describe('BottomActions', () => {
   let navLog: NavRequest[][]

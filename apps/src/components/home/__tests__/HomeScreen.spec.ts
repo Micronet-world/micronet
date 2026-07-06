@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import HomeScreen from '../HomeScreen.vue'
-import { i18n } from 'micronet-kernel'
-import { onNav, resetBus, type NavRequest } from 'micronet-kernel'
+import { i18n } from '@micronet/kernel'
+import { onNav, resetBus, type NavRequest } from '@micronet/kernel'
 
 describe('HomeScreen', () => {
   let navLog: NavRequest[][]

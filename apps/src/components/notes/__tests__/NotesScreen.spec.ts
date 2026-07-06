@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import NotesScreen from '../NotesScreen.vue'
-import { useNotesStore } from 'micronet-kernel'
-import { i18n } from 'micronet-kernel'
+import { useNotesStore } from '@micronet/kernel'
+import { i18n } from '@micronet/kernel'
 
 vi.mock('../../../composables/storage', () => ({
   storage: {

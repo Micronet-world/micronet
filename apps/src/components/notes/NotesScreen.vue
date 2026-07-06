@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSwipeGestures, useNotesStore, type Note } from 'micronet-kernel'
+import { useSwipeGestures, useNotesStore, type Note } from '@micronet/kernel'
 import { useNavigation } from '../../kernel'
 
 const { t } = useI18n()

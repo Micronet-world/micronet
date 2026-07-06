@@ -22,7 +22,7 @@ export interface KernelAPI {
   registerScreenComponents(components: Record<string, Component>): void
 }
 
-const KERNEL_KEY = Symbol('micronet-kernel')
+const KERNEL_KEY = Symbol('@micronet/kernel')
 let kernelInstance: KernelAPI | null = null
 
 export function setKernel(kernel: KernelAPI): void {

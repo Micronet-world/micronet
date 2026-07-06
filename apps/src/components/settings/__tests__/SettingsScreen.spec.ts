@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import SettingsScreen from '../SettingsScreen.vue'
-import { i18n } from 'micronet-kernel'
-import { onNav, resetBus, type NavRequest } from 'micronet-kernel'
+import { i18n } from '@micronet/kernel'
+import { onNav, resetBus, type NavRequest } from '@micronet/kernel'
 
 describe('SettingsScreen', () => {
   let navLog: NavRequest[][]

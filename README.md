@@ -84,7 +84,7 @@ Screens are registered at module-import time via `*.register.ts` files:
 
 ```typescript
 // LockScreen.register.ts
-import type { ScreenMeta, NavIntent } from 'micronet-kernel'
+import type { ScreenMeta, NavIntent } from '@micronet/kernel'
 
 export const meta: ScreenMeta = {
   id: 'lock',
@@ -103,7 +103,7 @@ export const events: Record<string, NavIntent> = {
 The `useScreenStack` composable owns the navigation state:
 
 ```typescript
-import { useScreenStack } from 'micronet-kernel'
+import { useScreenStack } from '@micronet/kernel'
 
 const { screenStack, currentScreen, dispatch } = useScreenStack()
 
@@ -125,7 +125,7 @@ dispatch({ type: 'lock' })
 Hand-rolled touch/mouse gesture detection with axis locking:
 
 ```typescript
-import { useSwipeGestures } from 'micronet-kernel'
+import { useSwipeGestures } from '@micronet/kernel'
 
 const { targetRef } = useSwipeGestures({
   onSwipeUp: () => console.log('Swiped up'),
@@ -303,7 +303,7 @@ npx vitest run -t "unlocks to home"
 Unit tests for screens use the `onNav` middleware to capture navigation requests:
 
 ```typescript
-import { onNav, resetBus } from 'micronet-kernel'
+import { onNav, resetBus } from '@micronet/kernel'
 
 let navLog: NavRequest[] = []
 

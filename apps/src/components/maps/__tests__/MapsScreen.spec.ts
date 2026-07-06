@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import MapsScreen from '../MapsScreen.vue'
-import { i18n, onNav, resetBus } from 'micronet-kernel'
-import type { NavRequest } from 'micronet-kernel'
+import { i18n, onNav, resetBus } from '@micronet/kernel'
+import type { NavRequest } from '@micronet/kernel'
 
 const mockAddControl = vi.fn()
 const mockRemove = vi.fn()

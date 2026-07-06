@@ -1,5 +1,5 @@
 {
-  "name": "micronet-apps",
+  "name": "@micronet/apps",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "vue": "^3.5.0"
   },
   "dependencies": {
-    "micronet-kernel": "^1.0.0",
-    "micronet-sdk": "^1.0.0"
+    "@micronet/kernel": "^1.0.0",
+    "@micronet/sdk": "^1.0.0"
   }
 }
