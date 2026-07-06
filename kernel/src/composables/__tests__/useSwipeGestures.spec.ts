@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h } from 'vue'
 import { useSwipeGestures } from '../useSwipeGestures'
 
 // jsdom does not define Touch / TouchEvent — polyfill minimally for tests

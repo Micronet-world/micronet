@@ -25,6 +25,7 @@ import FilesScreen from './components/files/FilesScreen.vue'
 
 const registrations = [
   lockReg, homeReg, settingsReg, cameraReg, photosReg, mapsReg, calendarReg, notesReg,
+  clockReg, filesReg,
 ]
 
 export const screenComponents: Record<string, Component> = {
@@ -36,6 +37,8 @@ export const screenComponents: Record<string, Component> = {
   maps: MapsScreen,
   calendar: CalendarScreen,
   notes: NotesScreen,
+  clock: ClockScreen,
+  files: FilesScreen,
 }
 
 export function registerApps(kernel: KernelAPI): void {

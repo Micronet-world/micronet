@@ -15,8 +15,8 @@ const { targetRef, isDragging } = useSwipeGestures({
 
 const {
   addFolder, addFile, updateFile, deleteItem, deleteItems,
-  getItemById, getChildren, getBreadcrumb, searchFiles,
-  getSortedChildren, getItemCount, formatFileSize,
+  getItemById, getBreadcrumb, searchFiles,
+  getSortedChildren, formatFileSize,
 } = useFileStore()
 
 // ─── Navigation State ───────────────────────────────────────────
@@ -62,8 +62,6 @@ const currentFolderName = computed(() => {
   const item = getItemById(currentFolderId.value)
   return item ? item.name : t('files.root')
 })
-
-const itemCount = computed(() => getItemCount(currentFolderId.value))
 
 const selectedCount = computed(() => selectedIds.value.size)
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { registerScreen, getRegisteredScreen, getRegisteredScreens, resetRegistry } from '../registry'
 import { onScreen, resetBus } from '../bus'
-import type { ScreenMeta, ScreenRegistration } from '../types'
+import type { ScreenMeta } from '../types'
 
 const homeMeta: ScreenMeta = { id: 'home', label: 'Home', color: '#fff', icon: 'home' }
 const settingsMeta: ScreenMeta = { id: 'settings', label: 'Settings', color: '#ccc', icon: 'settings' }

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { useNavigation } from '../navigation'
 import { onNav, resetBus } from '../bus'
 import type { NavRequest } from '../types'

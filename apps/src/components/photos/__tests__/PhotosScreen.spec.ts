@@ -6,7 +6,7 @@ import { i18n, onNav, resetBus, usePhotoStore } from 'micronet-kernel'
 import type { NavRequest } from 'micronet-kernel'
 
 vi.mock('micronet-kernel', async (importOriginal) => {
-  const orig = await importOriginal()
+  const orig = (await importOriginal()) as Record<string, unknown>
   return {
     ...orig,
     storage: {
