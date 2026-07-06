@@ -321,5 +321,8 @@ export default {
     root: '我的设备',
     content: '内容',
     textPlaceholder: '开始书写...',
+    selected: '已选择 {count} 项',
+    gridView: '网格视图',
+    listView: '列表视图',
   },
 }

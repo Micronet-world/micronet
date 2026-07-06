@@ -305,7 +305,7 @@ watch(searchQuery, (val) => {
               </svg>
             </button>
           </div>
-          <h1 class="header-title">{{ isSelecting ? `${selectedCount} selected` : currentFolderName }}</h1>
+          <h1 class="header-title">{{ isSelecting ? t('files.selected', { count: selectedCount }) : currentFolderName }}</h1>
           <div class="header-right">
             <button v-if="isSelecting" class="header-btn" @click="toggleSelectAll">
               {{ allSelected ? t('files.deselect') : t('files.selectAll') }}
@@ -386,7 +386,7 @@ watch(searchQuery, (val) => {
             </button>
             <div class="sort-divider"></div>
             <button class="sort-option" @click="viewMode = viewMode === 'list' ? 'grid' : 'list'; showSortMenu = false">
-              <span>{{ viewMode === 'list' ? 'Grid View' : 'List View' }}</span>
+              <span>{{ viewMode === 'list' ? t('files.gridView') : t('files.listView') }}</span>
             </button>
           </div>
         </Transition>

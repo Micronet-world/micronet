@@ -322,5 +322,8 @@ export default {
     root: 'On My Device',
     content: 'Content',
     textPlaceholder: 'Start writing...',
+    selected: '{count} selected',
+    gridView: 'Grid View',
+    listView: 'List View',
   },
 }
