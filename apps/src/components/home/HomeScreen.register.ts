@@ -13,4 +13,5 @@ export const events: Record<string, NavIntent> = {
   'go-calendar': { type: 'push', screen: 'calendar' },
   'go-clock': { type: 'push', screen: 'clock' },
   'go-notes': { type: 'push', screen: 'notes' },
+  'go-weather': { type: 'push', screen: 'weather' },
 }

@@ -116,6 +116,15 @@ const { targetRef: barTargetRef } =
           <span class="app-name">{{ t('home.notes') }}</span>
         </button>
 
+        <button class="app-icon" @click="goTo('weather')">
+          <div class="icon-wrapper weather-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="app-name">{{ t('home.weather') }}</span>
+        </button>
+
         <button class="app-icon" @click="goTo('settings')">
           <div class="icon-wrapper settings-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -250,6 +259,11 @@ const { targetRef: barTargetRef } =
 .notes-icon {
   background: linear-gradient(135deg, #f5f0e8 0%, #e8e3db 100%);
   color: #6b6560;
+}
+
+.weather-icon {
+  background: linear-gradient(135deg, #e3e8f0 0%, #d8dee8 100%);
+  color: #5a6575;
 }
 
 .icon-wrapper svg {
