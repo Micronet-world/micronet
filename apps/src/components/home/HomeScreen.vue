@@ -262,8 +262,8 @@ const { targetRef: barTargetRef } =
 }
 
 .weather-icon {
-  background: linear-gradient(135deg, #e3e8f0 0%, #d8dee8 100%);
-  color: #5a6575;
+  background: linear-gradient(135deg, #e9e5df 0%, #dedad4 100%);
+  color: #6b6560;
 }
 
 .icon-wrapper svg {
