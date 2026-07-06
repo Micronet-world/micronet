@@ -8,8 +8,12 @@ const { t } = useI18n()
 const { goBack, goHome } = useNavigation()
 
 const { targetRef, isDragging } = useSwipeGestures({
-  onSwipeUp: () => goHome(),
   onSwipeRight: () => goBack(),
+})
+
+const { targetRef: barTargetRef } = useSwipeGestures({
+  onSwipeUp: () => goHome(),
+  threshold: 40,
 })
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -541,6 +545,14 @@ onUnmounted(() => {
         <div v-if="lastUpdated" class="last-updated">
           {{ lastUpdated }}
         </div>
+      </div>
+
+      <!-- Home bar -->
+      <div
+        :ref="barTargetRef"
+        class="home-bar-area"
+      >
+        <div class="home-bar"></div>
       </div>
     </div>
   </div>
@@ -1134,6 +1146,30 @@ onUnmounted(() => {
 .slide-down-enter-from, .slide-down-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+/* ─── Home bar ──────────────────────────────────────────────── */
+.home-bar-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 44px;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+  background: transparent;
+  touch-action: none;
+  cursor: grab;
+}
+
+.home-bar {
+  width: 134px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.15);
 }
 
 /* ─── Responsive ─────────────────────────────────────────────── */
