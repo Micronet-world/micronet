@@ -1,0 +1,15 @@
+{
+  "id": "weather",
+  "name": "Weather",
+  "version": "1.0.0",
+  "icon": "🌤",
+  "color": "#34aadc",
+  "description": "Weather forecast.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": ["location", "network"],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

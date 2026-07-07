@@ -1,0 +1,16 @@
+{
+  "id": "settings",
+  "name": "Settings",
+  "version": "1.0.0",
+  "icon": "⚙️",
+  "color": "#636366",
+  "description": "Device settings including language and Bluetooth.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": ["bluetooth"],
+  "events": {
+    "go-lock": "lock",
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

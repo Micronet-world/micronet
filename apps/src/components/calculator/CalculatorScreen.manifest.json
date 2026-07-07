@@ -1,0 +1,15 @@
+{
+  "id": "calculator",
+  "name": "Calculator",
+  "version": "1.0.0",
+  "icon": "🧮",
+  "color": "#34c759",
+  "description": "Calculator.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": [],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

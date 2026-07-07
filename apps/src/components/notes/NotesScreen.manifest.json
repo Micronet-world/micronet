@@ -1,0 +1,15 @@
+{
+  "id": "notes",
+  "name": "Notes",
+  "version": "1.0.0",
+  "icon": "📝",
+  "color": "#ff9500",
+  "description": "Notes app for jotting things down.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": ["storage"],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

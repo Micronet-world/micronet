@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import StatusBar from '../StatusBar.vue'
-import { useSwipeGestures } from '@micronet/kernel'
+import { useSwipeGestures } from '@micronet/sdk'
 import { useI18n } from 'vue-i18n'
-import { useNavigation } from '../../kernel'
+import { useNavigation } from '@micronet/sdk'
 
 const { t } = useI18n()
 const { lock, goTo } = useNavigation()
@@ -247,53 +247,58 @@ const { targetRef: barTargetRef } =
 }
 
 .camera-icon {
-  background: linear-gradient(135deg, #f0ece7 0%, #e4dfd9 100%);
-  color: #6b6560;
+  background: var(--icon-camera);
+  color: #fff;
 }
 
 .photos-icon {
-  background: linear-gradient(135deg, #ede9e3 0%, #e0dbd4 100%);
-  color: #7a7470;
+  background: var(--icon-photos);
+  color: #fff;
 }
 
 .maps-icon {
-  background: linear-gradient(135deg, #eae6e0 0%, #ddd8d1 100%);
-  color: #68635e;
+  background: var(--icon-maps);
+  color: #fff;
 }
 
 .calendar-icon {
-  background: linear-gradient(135deg, #eae6e0 0%, #e0dcd6 100%);
-  color: #6b6560;
+  background: var(--icon-calendar);
+  color: #fff;
 }
 
 .settings-icon {
-  background: linear-gradient(135deg, #f2efe9 0%, #e5e1db 100%);
-  color: #5c5854;
+  background: var(--icon-settings);
+  color: #fff;
 }
 
 .clock-icon {
-  background: linear-gradient(135deg, #e8e4de 0%, #ddd9d3 100%);
-  color: #635e59;
+  background: var(--icon-clock);
+  color: #fff;
 }
 
 .files-icon {
-  background: linear-gradient(135deg, #e5e1db 0%, #dbd7d1 100%);
-  color: #6b6560;
+  background: var(--icon-files);
+  color: #fff;
 }
 
 .notes-icon {
-  background: linear-gradient(135deg, #f5f0e8 0%, #e8e3db 100%);
-  color: #6b6560;
+  background: var(--icon-notes);
+  color: #fff;
 }
 
 .weather-icon {
-  background: linear-gradient(135deg, #e9e5df 0%, #dedad4 100%);
-  color: #6b6560;
+  background: var(--icon-weather);
+  color: #fff;
 }
 
 .calculator-icon {
-  background: linear-gradient(135deg, #e8e4de 0%, #ddd9d3 100%);
-  color: #635e59;
+  background: var(--icon-calculator);
+  color: #fff;
+}
+
+.compass-icon {
+  background: var(--icon-compass);
+  color: #fff;
 }
 
 .icon-wrapper svg {

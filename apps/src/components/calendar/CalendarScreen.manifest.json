@@ -1,0 +1,15 @@
+{
+  "id": "calendar",
+  "name": "Calendar",
+  "version": "1.0.0",
+  "icon": "📅",
+  "color": "#ff3b30",
+  "description": "Calendar with events.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": ["calendar"],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

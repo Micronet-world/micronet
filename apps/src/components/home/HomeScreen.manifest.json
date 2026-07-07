@@ -1,0 +1,22 @@
+{
+  "id": "home",
+  "name": "Home",
+  "version": "1.0.0",
+  "icon": "🏠",
+  "color": "#faf9f6",
+  "description": "The home screen with app icons.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": [],
+  "events": {
+    "go-lock": "lock",
+    "go-settings": "push:settings",
+    "go-camera": "push:camera",
+    "go-photos": "push:photos",
+    "go-maps": "push:maps",
+    "go-calendar": "push:calendar",
+    "go-clock": "push:clock",
+    "go-notes": "push:notes",
+    "go-weather": "push:weather"
+  }
+}

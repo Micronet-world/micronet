@@ -1,0 +1,15 @@
+{
+  "id": "files",
+  "name": "Files",
+  "version": "1.0.0",
+  "icon": "📁",
+  "color": "#5ac8fa",
+  "description": "File browser.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": ["storage"],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

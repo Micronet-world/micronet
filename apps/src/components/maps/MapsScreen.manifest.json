@@ -1,0 +1,15 @@
+{
+  "id": "maps",
+  "name": "Maps",
+  "version": "1.0.0",
+  "icon": "🗺️",
+  "color": "#007aff",
+  "description": "Map with location and navigation.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": ["location", "network"],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

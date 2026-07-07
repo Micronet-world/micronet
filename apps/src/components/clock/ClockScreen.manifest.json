@@ -1,0 +1,15 @@
+{
+  "id": "clock",
+  "name": "Clock",
+  "version": "1.0.0",
+  "icon": "🕐",
+  "color": "#5856d6",
+  "description": "World clock, alarm, stopwatch, and timer.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": [],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

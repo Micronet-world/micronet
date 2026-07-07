@@ -1,0 +1,15 @@
+{
+  "id": "compass",
+  "name": "Compass",
+  "version": "1.0.0",
+  "icon": "🧭",
+  "color": "#8e8e93",
+  "description": "Compass.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": [],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

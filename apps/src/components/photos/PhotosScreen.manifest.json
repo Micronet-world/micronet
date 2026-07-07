@@ -1,0 +1,15 @@
+{
+  "id": "photos",
+  "name": "Photos",
+  "version": "1.0.0",
+  "icon": "🖼️",
+  "color": "#af52de",
+  "description": "Photo gallery.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": ["photos"],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}

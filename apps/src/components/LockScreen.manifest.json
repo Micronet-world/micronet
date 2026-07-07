@@ -1,0 +1,15 @@
+{
+  "id": "lock",
+  "name": "Lock Screen",
+  "version": "1.0.0",
+  "icon": "🔒",
+  "color": "#faf9f6",
+  "description": "The lock screen with clock and quick camera access.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": [],
+  "events": {
+    "unlock": "push:home",
+    "go-camera": "push:camera"
+  }
+}

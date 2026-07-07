@@ -1,0 +1,15 @@
+{
+  "id": "camera",
+  "name": "Camera",
+  "version": "1.0.0",
+  "icon": "📷",
+  "color": "#ffd60a",
+  "description": "Camera for capturing photos.",
+  "author": "Micronet",
+  "license": "MIT",
+  "permissions": ["camera", "photos"],
+  "events": {
+    "go-back": "back",
+    "go-home": "home"
+  }
+}
