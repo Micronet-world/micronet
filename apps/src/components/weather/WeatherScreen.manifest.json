@@ -3,7 +3,7 @@
   "name": "Weather",
   "version": "1.0.0",
   "icon": "🌤",
-  "color": "#34aadc",
+  "color": "#eae6e0",
   "description": "Weather forecast.",
   "author": "Micronet",
   "license": "MIT",

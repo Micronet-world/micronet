@@ -244,61 +244,8 @@ const { targetRef: barTargetRef } =
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.camera-icon {
-  background: var(--icon-camera);
-  color: #fff;
-}
-
-.photos-icon {
-  background: var(--icon-photos);
-  color: #fff;
-}
-
-.maps-icon {
-  background: var(--icon-maps);
-  color: #fff;
-}
-
-.calendar-icon {
-  background: var(--icon-calendar);
-  color: #fff;
-}
-
-.settings-icon {
-  background: var(--icon-settings);
-  color: #fff;
-}
-
-.clock-icon {
-  background: var(--icon-clock);
-  color: #fff;
-}
-
-.files-icon {
-  background: var(--icon-files);
-  color: #fff;
-}
-
-.notes-icon {
-  background: var(--icon-notes);
-  color: #fff;
-}
-
-.weather-icon {
-  background: var(--icon-weather);
-  color: #fff;
-}
-
-.calculator-icon {
-  background: var(--icon-calculator);
-  color: #fff;
-}
-
-.compass-icon {
-  background: var(--icon-compass);
-  color: #fff;
+  background: var(--icon-bg);
+  color: var(--icon-stroke);
 }
 
 .icon-wrapper svg {

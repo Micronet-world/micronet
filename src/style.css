@@ -34,17 +34,8 @@
   --color-camera-accent: #ffd60a;
 
   /* App icon colors */
-  --icon-camera: #ffd60a;
-  --icon-photos: #af52de;
-  --icon-maps: #007aff;
-  --icon-calendar: #ff3b30;
-  --icon-clock: #5856d6;
-  --icon-files: #5ac8fa;
-  --icon-notes: #ff9500;
-  --icon-weather: #34aadc;
-  --icon-calculator: #34c759;
-  --icon-compass: #8e8e93;
-  --icon-settings: #636366;
+  --icon-bg: #eae6e0;
+  --icon-stroke: #6b6560;
 
   /* Glass on light */
   --glass-bg: rgba(255, 255, 255, 0.6);

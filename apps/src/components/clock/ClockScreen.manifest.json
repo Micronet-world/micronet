@@ -3,7 +3,7 @@
   "name": "Clock",
   "version": "1.0.0",
   "icon": "🕐",
-  "color": "#5856d6",
+  "color": "#eae6e0",
   "description": "World clock, alarm, stopwatch, and timer.",
   "author": "Micronet",
   "license": "MIT",

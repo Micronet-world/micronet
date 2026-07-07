@@ -3,7 +3,7 @@
   "name": "Maps",
   "version": "1.0.0",
   "icon": "🗺️",
-  "color": "#007aff",
+  "color": "#eae6e0",
   "description": "Map with location and navigation.",
   "author": "Micronet",
   "license": "MIT",

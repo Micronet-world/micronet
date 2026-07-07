@@ -3,7 +3,7 @@
   "name": "Camera",
   "version": "1.0.0",
   "icon": "📷",
-  "color": "#ffd60a",
+  "color": "#eae6e0",
   "description": "Camera for capturing photos.",
   "author": "Micronet",
   "license": "MIT",

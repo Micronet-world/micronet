@@ -3,7 +3,7 @@
   "name": "Settings",
   "version": "1.0.0",
   "icon": "⚙️",
-  "color": "#636366",
+  "color": "#eae6e0",
   "description": "Device settings including language and Bluetooth.",
   "author": "Micronet",
   "license": "MIT",

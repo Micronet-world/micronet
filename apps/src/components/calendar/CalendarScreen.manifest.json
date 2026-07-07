@@ -3,7 +3,7 @@
   "name": "Calendar",
   "version": "1.0.0",
   "icon": "📅",
-  "color": "#ff3b30",
+  "color": "#eae6e0",
   "description": "Calendar with events.",
   "author": "Micronet",
   "license": "MIT",
