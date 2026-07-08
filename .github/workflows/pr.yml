@@ -25,7 +25,7 @@ jobs:
           node-version: 22.x
           cache: npm
       - run: npm ci
-      - run: vue-tsc -b --noEmit
+      - run: npx vue-tsc -b --noEmit
 
   test:
     runs-on: ubuntu-latest

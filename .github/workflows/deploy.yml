@@ -45,7 +45,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Typecheck
-        run: vue-tsc -b --noEmit
+        run: npx vue-tsc -b --noEmit
       - name: Run tests
         run: npm run test
 
@@ -73,9 +73,6 @@ jobs:
   deploy-cloudflare:
     needs: [build]
     runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://micronet.pages.dev
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -90,7 +87,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env production
+          command: deploy
       - name: Deployment URL
         run: |
           echo "## Deployment" >> $GITHUB_STEP_SUMMARY

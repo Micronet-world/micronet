@@ -56,7 +56,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Typecheck
-        run: vue-tsc -b --noEmit
+        run: npx vue-tsc -b --noEmit
       - name: Run tests
         run: npm run test
 
