@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSwipeGestures } from '@micronet/kernel'
-import { useCalendarStore, type CalendarEvent } from '@micronet/kernel'
-import { useNavigation } from '../../kernel'
+import { useSwipeGestures } from '@micronet/sdk'
+import { useCalendarStore, type CalendarEvent } from '@micronet/sdk'
+import { useNavigation } from '@micronet/sdk'
 
 const { t } = useI18n()
 const { goBack, goHome } = useNavigation()

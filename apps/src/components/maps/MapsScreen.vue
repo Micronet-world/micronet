@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { useNavigation } from '../../kernel'
+import { useNavigation } from '@micronet/sdk'
 
 const { t } = useI18n()
 const { goBack } = useNavigation()

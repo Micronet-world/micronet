@@ -80,23 +80,24 @@ The middleware is the sole bridge between apps and the kernel runtime:
 
 ### Screen Registration
 
-Screens are registered at module-import time via `*.register.ts` files:
+Screens are registered through **`manifest.json`** files co-located with each screen component. Each manifest declares `id`, `name`, `version`, `icon`, `color`, `events` (string→intent mappings), and `permissions`:
 
-```typescript
-// LockScreen.register.ts
-import type { ScreenMeta, NavIntent } from '@micronet/kernel'
-
-export const meta: ScreenMeta = {
-  id: 'lock',
-  label: 'Lock Screen',
-  color: '#1a1a1a',
-  icon: '🔒',
-}
-
-export const events: Record<string, NavIntent> = {
-  unlock: { type: 'push', screen: 'home' },
+```json
+// LockScreen.manifest.json
+{
+  "id": "lock",
+  "name": "Lock Screen",
+  "version": "1.0.0",
+  "icon": "🔒",
+  "color": "#faf9f6",
+  "events": {
+    "unlock": "push:home",
+    "go-camera": "push:camera"
+  }
 }
 ```
+
+Apps are compiled into the standard **`.mnapp`** binary format by `scripts/build-apps.mjs` and deployed as static assets in `public/apps/`. At runtime, the SDK loader fetches each `.mnapp`, decodes it, and registers the screen with the kernel.
 
 ### Navigation Stack
 

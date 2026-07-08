@@ -2,11 +2,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import App from '../App.vue'
-import { i18n } from '@micronet/kernel'
+import { i18n, setKernel, resetRegistry, resetBus } from '@micronet/kernel'
+import { appEntries } from '@micronet/apps'
+import { createKernelAPI } from '../kernel-setup'
+import { loadAppsSync, clearLoadedApps } from '../app-loader'
 
 describe('Touch-through-App repro', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+    setKernel(createKernelAPI())
+    clearLoadedApps()
+    resetRegistry()
+    resetBus()
+    loadAppsSync(appEntries)
   })
   afterEach(() => {
     vi.useRealTimers()

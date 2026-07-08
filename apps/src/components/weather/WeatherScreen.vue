@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSwipeGestures, storage } from '@micronet/kernel'
-import { useNavigation } from '../../kernel'
+import { useSwipeGestures, storage } from '@micronet/sdk'
+import { useNavigation } from '@micronet/sdk'
 
 const { t } = useI18n()
 const { goBack, goHome } = useNavigation()

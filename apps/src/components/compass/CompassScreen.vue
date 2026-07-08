@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSwipeGestures } from '@micronet/kernel'
-import { useNavigation } from '../../kernel'
+import { useSwipeGestures } from '@micronet/sdk'
+import { useNavigation } from '@micronet/sdk'
 
 const { t } = useI18n()
 const { goBack, goHome } = useNavigation()
@@ -487,7 +487,7 @@ onUnmounted(() => {
 .header-title {
   font-size: 17px;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-accent);
   letter-spacing: -0.2px;
 }
 

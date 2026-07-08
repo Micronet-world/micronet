@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useNavigation } from '../kernel'
+import { useNavigation } from '@micronet/sdk'
 
 const { goTo } = useNavigation()
 const flashOn = ref(false)

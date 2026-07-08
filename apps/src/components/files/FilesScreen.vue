@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSwipeGestures, useFileStore } from '@micronet/kernel'
-import type { FileItem } from '@micronet/kernel'
-import { useNavigation } from '../../kernel'
+import { useSwipeGestures, useFileStore } from '@micronet/sdk'
+import type { FileItem } from '@micronet/sdk'
+import { useNavigation } from '@micronet/sdk'
 
 const { t } = useI18n()
 const { goBack, goHome } = useNavigation()

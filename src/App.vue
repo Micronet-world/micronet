@@ -1,46 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import {
-  provideKernel,
-  useKernelBridge,
-  useNavigation as kernelUseNavigation,
-  registerScreen as kernelRegisterScreen,
-  getRegisteredScreen,
-  getRegisteredScreens,
-  resetRegistry,
-  onNav,
-  resetBus,
-  registerScreenComponents,
-  getScreenComponent,
-  KeyboardView,
-  type KernelAPI,
-} from '@micronet/kernel'
+import { computed, getCurrentInstance } from 'vue'
+import { provideKernel, useKernelBridge, KeyboardView, type KernelAPI } from '@micronet/kernel'
 import { getAllAppComponents } from '@micronet/sdk'
-import { registerApps } from '@micronet/apps'
-import { getCurrentInstance } from 'vue'
+import { createKernelAPI } from './kernel-setup'
 
-const kernel: KernelAPI = {
-  useNavigation: kernelUseNavigation,
-  registerScreen: kernelRegisterScreen,
-  getRegisteredScreen,
-  getRegisteredScreens,
-  resetRegistry,
-  onNav,
-  resetBus,
-  registerScreenComponents,
-}
-
+const kernel: KernelAPI = createKernelAPI()
 const app = getCurrentInstance()!.appContext.app
 provideKernel(app, kernel)
-
-registerApps(kernel)
 
 const { currentScreen, currentPlugin } = useKernelBridge()
 
 const activeComponent = computed(() => {
   if (!currentPlugin.value) return null
   const id = currentScreen.value
-  return getScreenComponent(id as any) || getAllAppComponents()[id] || null
+  return getAllAppComponents()[id] || null
 })
 </script>
 

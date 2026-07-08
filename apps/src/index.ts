@@ -1,19 +1,5 @@
 import type { Component } from 'vue'
-import type { KernelAPI } from '@micronet/kernel'
-
-import * as lockReg from './components/LockScreen.register'
-import * as homeReg from './components/home/HomeScreen.register'
-import * as settingsReg from './components/settings/SettingsScreen.register'
-import * as cameraReg from './components/camera/CameraScreen.register'
-import * as photosReg from './components/photos/PhotosScreen.register'
-import * as mapsReg from './components/maps/MapsScreen.register'
-import * as calendarReg from './components/calendar/CalendarScreen.register'
-import * as notesReg from './components/notes/NotesScreen.register'
-import * as clockReg from './components/clock/ClockScreen.register'
-import * as filesReg from './components/files/FilesScreen.register'
-import * as weatherReg from './components/weather/WeatherScreen.register'
-import * as calculatorReg from './components/calculator/CalculatorScreen.register'
-import * as compassReg from './components/compass/CompassScreen.register'
+import type { AppManifest } from '@micronet/sdk'
 
 import LockScreen from './components/LockScreen.vue'
 import HomeScreen from './components/home/HomeScreen.vue'
@@ -29,30 +15,41 @@ import WeatherScreen from './components/weather/WeatherScreen.vue'
 import CalculatorScreen from './components/calculator/CalculatorScreen.vue'
 import CompassScreen from './components/compass/CompassScreen.vue'
 
-const registrations = [
-  lockReg, homeReg, settingsReg, cameraReg, photosReg, mapsReg, calendarReg, notesReg,
-  clockReg, filesReg, weatherReg, calculatorReg, compassReg,
+import lockManifest from './components/LockScreen.manifest.json'
+import homeManifest from './components/home/HomeScreen.manifest.json'
+import settingsManifest from './components/settings/SettingsScreen.manifest.json'
+import cameraManifest from './components/camera/CameraScreen.manifest.json'
+import photosManifest from './components/photos/PhotosScreen.manifest.json'
+import mapsManifest from './components/maps/MapsScreen.manifest.json'
+import calendarManifest from './components/calendar/CalendarScreen.manifest.json'
+import notesManifest from './components/notes/NotesScreen.manifest.json'
+import clockManifest from './components/clock/ClockScreen.manifest.json'
+import filesManifest from './components/files/FilesScreen.manifest.json'
+import weatherManifest from './components/weather/WeatherScreen.manifest.json'
+import calculatorManifest from './components/calculator/CalculatorScreen.manifest.json'
+import compassManifest from './components/compass/CompassScreen.manifest.json'
+
+export interface AppEntry {
+  manifest: AppManifest
+  component: Component
+}
+
+function entry(manifest: unknown, component: Component): AppEntry {
+  return { manifest: manifest as AppManifest, component }
+}
+
+export const appEntries: AppEntry[] = [
+  entry(lockManifest, LockScreen),
+  entry(homeManifest, HomeScreen),
+  entry(settingsManifest, SettingsScreen),
+  entry(cameraManifest, CameraScreen),
+  entry(photosManifest, PhotosScreen),
+  entry(mapsManifest, MapsScreen),
+  entry(calendarManifest, CalendarScreen),
+  entry(notesManifest, NotesScreen),
+  entry(clockManifest, ClockScreen),
+  entry(filesManifest, FilesScreen),
+  entry(weatherManifest, WeatherScreen),
+  entry(calculatorManifest, CalculatorScreen),
+  entry(compassManifest, CompassScreen),
 ]
-
-export const screenComponents: Record<string, Component> = {
-  lock: LockScreen,
-  home: HomeScreen,
-  settings: SettingsScreen,
-  camera: CameraScreen,
-  photos: PhotosScreen,
-  maps: MapsScreen,
-  calendar: CalendarScreen,
-  notes: NotesScreen,
-  clock: ClockScreen,
-  files: FilesScreen,
-  weather: WeatherScreen,
-  calculator: CalculatorScreen,
-  compass: CompassScreen,
-}
-
-export function registerApps(kernel: KernelAPI): void {
-  for (const reg of registrations) {
-    kernel.registerScreen(reg.meta, reg.events)
-  }
-  kernel.registerScreenComponents(screenComponents)
-}

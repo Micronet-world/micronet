@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import App from '../App.vue'
-import { i18n } from '@micronet/kernel'
+import { i18n, setKernel, resetRegistry, resetBus } from '@micronet/kernel'
+import { appEntries } from '@micronet/apps'
+import { createKernelAPI } from '../kernel-setup'
+import { loadAppsSync, clearLoadedApps } from '../app-loader'
 
 vi.mock('maplibre-gl', () => {
   class Map {
@@ -26,6 +29,13 @@ vi.mock('maplibre-gl', () => {
 describe('App Integration', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+
+    // Reset kernel + SDK loader state, then register all apps from source.
+    setKernel(createKernelAPI())
+    clearLoadedApps()
+    resetRegistry()
+    resetBus()
+    loadAppsSync(appEntries)
 
     // Mock geolocation for maps tests
     if (!navigator.geolocation) {

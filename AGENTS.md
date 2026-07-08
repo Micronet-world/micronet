@@ -7,7 +7,8 @@ Guidance for agents working in `micronet/` (the Vue 3 lock-screen prototype). Ru
 | Task | Command |
 |------|---------|
 | Dev server | `npm run dev` |
-| Build (also the only typecheck) | `npm run build` → `vue-tsc -b && vite build` |
+| Build .mnapp bundles only | `npm run build:apps` |
+| Build (also the only typecheck) | `npm run build` → `build:apps && vue-tsc -b && vite build` |
 | Preview prod build | `npm run preview` |
 | Run all tests | `npm run test` (`vitest run`) |
 | Watch tests | `npm run test:watch` |
@@ -33,9 +34,12 @@ Guidance for agents working in `micronet/` (the Vue 3 lock-screen prototype). Ru
   - `registry.ts`: `registerScreen(meta, events)` stores screen metadata and event-to-intent mappings.
   - `kernel.ts`: `useKernelBridge()` composable for `App.vue`. Subscribes to nav messages, dispatches through `useScreenStack`.
   - `screens.ts`: `registerScreenComponents(map)` for apps to register their Vue components with the kernel.
-- **Screen registration** happens at module-import time via `*.register.ts` files in `apps/src/components/`. Each calls `registerScreen(meta, events)` from `@micronet/kernel` as a side effect. The `apps/src/index.ts` barrel imports all `.register.ts` files and exports `screenComponents`.
+- **Screen registration** happens through **`manifest.json`** files co-located with each screen component. Each manifest declares `id`, `name`, `version`, `icon`, `color`, `events` (string→intent mappings like `"push:home"`, `"back"`, `"lock"`), and `permissions`. The `apps/src/index.ts` barrel imports all manifests + components and exports `appEntries`.
+- **`.mnapp` format**: Apps are compiled into the standard binary `.mnapp` format by `scripts/build-apps.mjs`. The script uses esbuild + `@vue/compiler-sfc` to compile each Vue SFC into a CJS module (with `vue`, `vue-i18n`, `@micronet/sdk`, `maplibre-gl` as externals), then wraps the code + manifest into a `MnAppBundle` and encodes it with the `MNAPP` magic header. Output goes to `public/apps/<id>.mnapp` and ships with the web page in `dist/apps/`.
+- **Runtime app loading** (`src/app-loader.ts` + `src/main.ts`): In production, `main.ts` configures the SDK loader's `requireResolver` (providing `vue`, `vue-i18n`, `@micronet/sdk`, `maplibre-gl` from the host), then fetches each `.mnapp` from `/apps/`, decodes it, and loads it via `loadAppFromBundle()`. In dev/test, apps are registered directly from source via `registerAppInstance()` for hot-module reload support.
 - **`useScreenStack`** (`kernel/src/composables/useScreenStack.ts`) owns `screenStack: ref<ScreenId[]>`, `currentScreen` (stack top), and a single `dispatch(intent: NavIntent)` reducer covering `push`/`lock`/`home`/`back`/`navigate`.
-- `src/App.vue` renders the current screen with `<component :is="activeComponent" :key="currentScreen">`. It imports from all three packages and calls `registerScreenComponents(appComponents)` to wire apps into the kernel.
+- `src/App.vue` renders the current screen with `<component :is="activeComponent" :key="currentScreen">`. It reads loaded app components from `getAllAppComponents()` (SDK loader). It does NOT load apps itself — loading is handled by `main.ts` (prod/dev) or test setup (tests).
+- **Apps import everything from `@micronet/sdk`** — navigation, gestures, stores, i18n setters, and types are all re-exported by the SDK from `@micronet/kernel`. Apps should never import `@micronet/kernel` directly.
 - **Shared components** (`apps/src/components/`): `StatusBar`, `TimeDisplay`, `BottomActions`, `SwipeIndicator` are co-located with the screen components; their unit tests live in `apps/src/components/__tests__/`.
 - **Shared composables** (`kernel/src/composables/`): `useScreenStack`, `useSwipeGestures`, `usePhotoStore`, `useCalendarStore`, `useNotesStore`, `useFileStore`, `useBluetooth`, `storage`.
 
@@ -50,6 +54,7 @@ Guidance for agents working in `micronet/` (the Vue 3 lock-screen prototype). Ru
 - Vitest with `jsdom`, `@vue/test-utils`, and `globals: true` (`vitest.config.ts`). Specs are `*.spec.ts` co-located in `__tests__/` dirs beside the code; whole-app integration tests are in `src/__tests__/App.integration.spec.ts`.
 - **Unit tests for screens** use `onNav` from the middleware to capture navigation requests instead of checking `wrapper.emitted()`. Subscribe in `beforeEach`, assert on `navLog`, and call `resetBus()` in `afterEach`. See `LockScreen.spec.ts` for the pattern.
 - Integration tests mount the full `App` and drive gestures by dispatching raw `MouseEvent`/`TouchEvent` on `window` (see the `swipeUp`/`swipeDown` helpers). Reuse that pattern — don't try to simulate a gesture library.
+- **Integration tests must load apps in `beforeEach`**: call `setKernel(createKernelAPI())`, `clearLoadedApps()`, `resetRegistry()`, `resetBus()`, then `loadAppsSync(appEntries)` before `mount(App)`. See `App.integration.spec.ts` for the pattern.
 - **`TimeDisplay` polls `new Date()` every second**, so App integration tests wrap each case in `vi.useFakeTimers()` / `vi.useRealTimers()`. Do the same for any test that mounts `App` or `TimeDisplay`, or it will hang or advance real time.
 
 ## Repo context
