@@ -4,6 +4,10 @@ on:
   repository_dispatch:
     types: [sync-kernel, sync-sdk, sync-apps]
 
+concurrency:
+  group: sync-inbound-${{ github.event.action }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -15,17 +19,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull kernel changes
+          token: ${{ secrets.SUBREPO_TOKEN }}
+      - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+      - name: Pull kernel changes
+        run: |
           git remote add kernel https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/kernel.git || true
           git fetch kernel main
-          
           git subtree pull --prefix=kernel kernel main --allow-unrelated-histories -m "Sync kernel from sub-repo"
-          git push origin main
+      - name: Run tests after sync
+        run: |
+          npm ci
+          npm run test
+      - name: Push if tests pass
+        run: git push origin main
 
   sync-from-sdk:
     if: github.event.action == 'sync-sdk'
@@ -34,17 +43,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull sdk changes
+          token: ${{ secrets.SUBREPO_TOKEN }}
+      - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+      - name: Pull sdk changes
+        run: |
           git remote add sdk https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/sdk.git || true
           git fetch sdk main
-          
           git subtree pull --prefix=sdk sdk main --allow-unrelated-histories -m "Sync sdk from sub-repo"
-          git push origin main
+      - name: Run tests after sync
+        run: |
+          npm ci
+          npm run test
+      - name: Push if tests pass
+        run: git push origin main
 
   sync-from-apps:
     if: github.event.action == 'sync-apps'
@@ -53,14 +67,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull apps changes
+          token: ${{ secrets.SUBREPO_TOKEN }}
+      - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+      - name: Pull apps changes
+        run: |
           git remote add apps https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/apps.git || true
           git fetch apps main
-          
           git subtree pull --prefix=apps apps main --allow-unrelated-histories -m "Sync apps from sub-repo"
-          git push origin main
+      - name: Run tests after sync
+        run: |
+          npm ci
+          npm run test
+      - name: Push if tests pass
+        run: git push origin main

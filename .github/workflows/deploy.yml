@@ -1,25 +1,30 @@
-name: Deploy & Sync
+name: Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
+  # ── Detect which packages changed ────────────────────────────────────────
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      kernel: ${{ steps.changes.outputs.kernel }}
-      sdk: ${{ steps.changes.outputs.sdk }}
-      apps: ${{ steps.changes.outputs.apps }}
+      kernel: ${{ steps.filter.outputs.kernel }}
+      sdk: ${{ steps.filter.outputs.sdk }}
+      apps: ${{ steps.filter.outputs.apps }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: dorny/paths-filter@v3
-        id: changes
+        id: filter
         with:
           filters: |
             kernel:
@@ -29,18 +34,74 @@ jobs:
             apps:
               - 'apps/**'
 
+  # ── Test gate ────────────────────────────────────────────────────────────
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-          cache: 'npm'
+          node-version: 22.x
+          cache: npm
       - run: npm ci
-      - run: npm run build
-      - run: npm run test
+      - name: Typecheck
+        run: vue-tsc -b --noEmit
+      - name: Run tests
+        run: npm run test
 
+  # ── Build ────────────────────────────────────────────────────────────────
+  build:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Full production build
+        run: npm run build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 3
+
+  # ── Deploy to Cloudflare Workers ─────────────────────────────────────────
+  deploy-cloudflare:
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://micronet.pages.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Full production build
+        run: npm run build
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env production
+      - name: Deployment URL
+        run: |
+          echo "## Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deployed to Cloudflare Workers" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://micronet.pages.dev" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  # ── Sync kernel to sub-repo ──────────────────────────────────────────────
   sync-kernel:
     needs: [detect-changes, test]
     if: needs.detect-changes.outputs.kernel == 'true'
@@ -54,13 +115,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           git remote add kernel https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/kernel.git || true
           git fetch kernel
-          
+
           SUBTREE_HEAD=$(git subtree split --prefix=kernel)
           git push kernel ${SUBTREE_HEAD}:main --force
 
+  # ── Sync sdk to sub-repo ─────────────────────────────────────────────────
   sync-sdk:
     needs: [detect-changes, test]
     if: needs.detect-changes.outputs.sdk == 'true'
@@ -74,13 +136,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           git remote add sdk https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/sdk.git || true
           git fetch sdk
-          
+
           SUBTREE_HEAD=$(git subtree split --prefix=sdk)
           git push sdk ${SUBTREE_HEAD}:main --force
 
+  # ── Sync apps to sub-repo ────────────────────────────────────────────────
   sync-apps:
     needs: [detect-changes, test]
     if: needs.detect-changes.outputs.apps == 'true'
@@ -94,24 +157,29 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           git remote add apps https://x-access-token:${{ secrets.SUBREPO_TOKEN }}@github.com/Micronet-world/apps.git || true
           git fetch apps
-          
+
           SUBTREE_HEAD=$(git subtree split --prefix=apps)
           git push apps ${SUBTREE_HEAD}:main --force
 
-  notify:
-    needs: [sync-kernel, sync-sdk, sync-apps]
+  # ── Deploy summary ───────────────────────────────────────────────────────
+  deploy-summary:
+    needs: [deploy-cloudflare, sync-kernel, sync-sdk, sync-apps]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Summary
+      - name: Deployment Summary
         run: |
-          echo "## Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Package | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| kernel | ${{ needs.sync-kernel.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| sdk | ${{ needs.sync-sdk.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| apps | ${{ needs.sync-apps.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Cloudflare | ${{ needs.deploy-cloudflare.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sync kernel | ${{ needs.sync-kernel.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sync sdk | ${{ needs.sync-sdk.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sync apps | ${{ needs.sync-apps.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY

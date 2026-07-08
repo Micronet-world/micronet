@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Typecheck ────────────────────────────────────────────────────────────
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npx vue-tsc -b --noEmit
+
+  # ── Test ─────────────────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: Run tests
+        run: npm run test
+
+  # ── Build .mnapp bundles ─────────────────────────────────────────────────
+  build:
+    needs: [typecheck, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Build .mnapp bundles
+        run: npm run build:mnapp
+      - name: Verify all 13 bundles
+        run: |
+          for app in lock home settings camera photos maps calendar notes clock files weather calculator compass; do
+            if [ ! -f "dist/${app}.mnapp" ]; then
+              echo "::error::Missing bundle: dist/${app}.mnapp"
+              exit 1
+            fi
+            SIZE=$(stat -c%s "dist/${app}.mnapp")
+            if [ "$SIZE" -lt 100 ]; then
+              echo "::error::Bundle ${app}.mnapp is too small (${SIZE} bytes)"
+              exit 1
+            fi
+            echo "  ✓ ${app}.mnapp (${SIZE} bytes)"
+          done
+          echo "All 13 .mnapp bundles validated."
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: mnapp-bundles
+          path: dist/*.mnapp
+          retention-days: 7
+
+  # ── CI Summary ───────────────────────────────────────────────────────────
+  ci-summary:
+    needs: [typecheck, test, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Typecheck | ${{ needs.typecheck.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build .mnapp | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY

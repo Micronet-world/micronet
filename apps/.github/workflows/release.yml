@@ -1,0 +1,211 @@
+name: Release
+
+on:
+  # Trigger on version tags
+  push:
+    tags:
+      - 'v*'
+  # Manual trigger with version input
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0)'
+        required: true
+        type: string
+      dry-run:
+        description: 'Dry run (skip publish)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: https://registry.npmjs.org
+
+jobs:
+  # ── Resolve version ──────────────────────────────────────────────────────
+  resolve-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          # Strip leading 'v' for npm version
+          NPM_VERSION="${VERSION#v}"
+          echo "version=$NPM_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "## Version" >> $GITHUB_STEP_SUMMARY
+          echo "Tag: \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "npm version: \`$NPM_VERSION\`" >> $GITHUB_STEP_SUMMARY
+
+  # ── Test gate ────────────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npx vue-tsc -b --noEmit
+      - name: Run tests
+        run: npm run test
+
+  # ── Build .mnapp bundles ─────────────────────────────────────────────────
+  build:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Build .mnapp bundles
+        run: npm run build:mnapp
+      - name: Verify bundles
+        run: |
+          echo "## Built .mnapp bundles" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| App | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|------|" >> $GITHUB_STEP_SUMMARY
+          for app in lock home settings camera photos maps calendar notes clock files weather calculator compass; do
+            if [ ! -f "dist/${app}.mnapp" ]; then
+              echo "::error::Missing bundle: dist/${app}.mnapp"
+              exit 1
+            fi
+            SIZE=$(stat -c%s "dist/${app}.mnapp")
+            echo "| ${app}.mnapp | ${SIZE} bytes |" >> $GITHUB_STEP_SUMMARY
+          done
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: mnapp-bundles
+          path: dist/*.mnapp
+
+  # ── Create GitHub Release ────────────────────────────────────────────────
+  github-release:
+    needs: [resolve-version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download bundles
+        uses: actions/download-artifact@v4
+        with:
+          name: mnapp-bundles
+          path: bundles/
+      - name: List bundles
+        run: |
+          echo "Downloaded bundles:"
+          ls -la bundles/
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.resolve-version.outputs.tag }}
+          name: "@micronet/apps ${{ needs.resolve-version.outputs.tag }}"
+          body: |
+            ## @micronet/apps ${{ needs.resolve-version.outputs.tag }}
+
+            ### Included .mnapp bundles
+
+            | App | Description |
+            |-----|-------------|
+            | `lock.mnapp` | Lock screen with clock and quick camera access |
+            | `home.mnapp` | Home screen with app icon grid |
+            | `settings.mnapp` | iOS-style settings with Bluetooth, Display, Notifications |
+            | `camera.mnapp` | Full camera with photo/video capture, filters, timer |
+            | `photos.mnapp` | Photo gallery with viewer, metadata, sharing |
+            | `maps.mnapp` | Map application with MapLibre GL and geolocation |
+            | `calendar.mnapp` | Calendar with month view and event management |
+            | `notes.mnapp` | Notes app with color coding and pin support |
+            | `clock.mnapp` | World clock, alarm, stopwatch, and timer |
+            | `files.mnapp` | File manager with folders, search, and editor |
+            | `weather.mnapp` | Weather app with Open-Meteo API and 7-day forecast |
+            | `calculator.mnapp` | Standard and scientific calculator |
+            | `compass.mnapp` | Compass with heading, coordinates, and altitude |
+
+            ### Installation
+
+            Copy the `.mnapp` files to your `/apps/` directory and load them via the SDK loader:
+
+            ```javascript
+            import { loadAppFromBundle, decodeBundle } from '@micronet/sdk'
+
+            const response = await fetch('/apps/lock.mnapp')
+            const bytes = new Uint8Array(await response.arrayBuffer())
+            const bundle = decodeBundle(bytes)
+            loadAppFromBundle(bundle)
+            ```
+          files: |
+            bundles/*.mnapp
+          draft: false
+          prerelease: false
+
+  # ── Publish to npm ───────────────────────────────────────────────────────
+  publish-npm:
+    needs: [resolve-version, build]
+    if: github.event.inputs.dry-run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          registry-url: ${{ env.REGISTRY }}
+      - run: npm ci
+      - name: Set version
+        run: npm version ${{ needs.resolve-version.outputs.version }} --no-git-tag-version
+      - name: Build for npm
+        run: npx vue-tsc --declaration --emitDeclarationOnly
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ── Sync to monorepo ────────────────────────────────────────────────────
+  notify-monorepo:
+    needs: [github-release]
+    if: github.event.inputs.dry-run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger monorepo sync
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.SYNC_TOKEN }}
+          repository: Micronet-world/micronet
+          event-type: sync-apps
+          client-payload: '{"version": "${{ needs.resolve-version.outputs.tag }}"}'
+
+  # ── Release Summary ──────────────────────────────────────────────────────
+  release-summary:
+    needs: [resolve-version, github-release, publish-npm]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`${{ needs.resolve-version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Release | ${{ needs.github-release.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| npm Publish | ${{ needs.publish-npm.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.dry-run }}" = "true" ]; then
+            echo "> ⚠️ This was a dry run." >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,27 @@
+# Build output
+dist/
+.build-tmp/
+
+# Compiled .mnapp bundles
+*.mnapp
+
+# TypeScript declaration leaks from build
+src/**/*.d.ts
+src/**/*.d.ts.map
+
+# Dependencies
+node_modules/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+*.sw?
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env*
+!.env.example

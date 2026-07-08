@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-  "description": "Micronet built-in apps — lock screen, home, settings, camera, photos, maps, calendar",
+  "description": "Micronet built-in apps — lock screen, home, settings, camera, photos, maps, calendar, notes, clock, files, weather, calculator, compass",
   "repository": {
     "type": "git",
     "url": "https://github.com/Micronet-world/apps.git"
@@ -22,7 +22,10 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "vue-tsc --declaration --emitDeclarationOnly && tsc",
+    "build:mnapp": "node scripts/build-mnapp.mjs",
+    "build": "npm run build:mnapp && vue-tsc --declaration --emitDeclarationOnly",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
@@ -31,5 +34,16 @@
   "dependencies": {
     "@micronet/kernel": "^1.0.0",
     "@micronet/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@vue/compiler-sfc": "^3.5.0",
+    "@vue/test-utils": "^2.4.11",
+    "esbuild": "^0.25.0",
+    "jsdom": "^29.1.1",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.9",
+    "vue": "^3.5.39",
+    "vue-i18n": "^10.0.8",
+    "vue-tsc": "^3.3.5"
   }
 }

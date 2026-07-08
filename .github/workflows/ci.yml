@@ -1,0 +1,147 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Detect which packages changed ────────────────────────────────────────
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      kernel: ${{ steps.filter.outputs.kernel }}
+      sdk: ${{ steps.filter.outputs.sdk }}
+      apps: ${{ steps.filter.outputs.apps }}
+      src: ${{ steps.filter.outputs.src }}
+      scripts: ${{ steps.filter.outputs.scripts }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            kernel:
+              - 'kernel/**'
+            sdk:
+              - 'sdk/**'
+            apps:
+              - 'apps/**'
+            src:
+              - 'src/**'
+            scripts:
+              - 'scripts/**'
+
+  # ── Typecheck ────────────────────────────────────────────────────────────
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Typecheck (vue-tsc)
+        run: vue-tsc -b --noEmit
+
+  # ── Test ─────────────────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: Run tests
+        run: npm run test
+      - name: Upload coverage
+        if: matrix.node-version == '22.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            coverage/
+            test-results/
+          retention-days: 7
+
+  # ── Build ────────────────────────────────────────────────────────────────
+  build:
+    needs: [typecheck, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Build .mnapp bundles
+        run: npm run build:apps
+      - name: Build SPA
+        run: vite build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ── Validate .mnapp bundles ──────────────────────────────────────────────
+  validate-bundles:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Build .mnapp bundles
+        run: npm run build:apps
+      - name: Verify all 13 bundles exist
+        run: |
+          for app in lock home settings camera photos maps calendar notes clock files weather calculator compass; do
+            if [ ! -f "public/apps/${app}.mnapp" ]; then
+              echo "ERROR: Missing bundle for ${app}"
+              exit 1
+            fi
+            SIZE=$(stat -c%s "public/apps/${app}.mnapp")
+            if [ "$SIZE" -lt 100 ]; then
+              echo "ERROR: Bundle ${app}.mnapp is too small (${SIZE} bytes)"
+              exit 1
+            fi
+            echo "  ✓ ${app}.mnapp (${SIZE} bytes)"
+          done
+          echo "All 13 bundles validated."
+
+  # ── Summary ──────────────────────────────────────────────────────────────
+  ci-summary:
+    needs: [detect-changes, typecheck, test, build, validate-bundles]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI Summary
+        run: |
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Typecheck | ${{ needs.typecheck.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test (Node 20) | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validate Bundles | ${{ needs.validate-bundles.result }} |" >> $GITHUB_STEP_SUMMARY

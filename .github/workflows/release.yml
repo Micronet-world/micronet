@@ -1,0 +1,228 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to release'
+        required: true
+        type: choice
+        options:
+          - kernel
+          - sdk
+          - apps
+          - all
+      version:
+        description: 'Version bump (patch, minor, major) or explicit version'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry-run:
+        description: 'Dry run (skip npm publish)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # ── Validate inputs ──────────────────────────────────────────────────────
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.resolve.outputs.packages }}
+    steps:
+      - id: resolve
+        run: |
+          if [ "${{ inputs.package }}" = "all" ]; then
+            echo 'packages=["kernel","sdk","apps"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'packages=["${{ inputs.package }}"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Test gate ────────────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: vue-tsc -b --noEmit
+      - name: Run tests
+        run: npm run test
+
+  # ── Release kernel ───────────────────────────────────────────────────────
+  release-kernel:
+    needs: [validate, test]
+    if: contains(fromJSON(needs.validate.outputs.packages), 'kernel')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+
+      - name: Bump version
+        working-directory: kernel
+        run: |
+          npm version ${{ inputs.version }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
+          echo "## Kernel Release" >> $GITHUB_STEP_SUMMARY
+          echo "Version: \`$NEW_VERSION\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build
+        working-directory: kernel
+        run: npm run build
+
+      - name: Publish
+        if: inputs.dry-run == false
+        working-directory: kernel
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry run
+        if: inputs.dry-run == true
+        working-directory: kernel
+        run: npm publish --access public --dry-run
+
+      - name: Commit version bump
+        if: inputs.dry-run == false
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add kernel/package.json
+          git commit -m "release: @micronet/kernel@${{ env.NEW_VERSION }}"
+          git tag "kernel@${{ env.NEW_VERSION }}"
+          git push origin main --tags
+
+  # ── Release sdk ──────────────────────────────────────────────────────────
+  release-sdk:
+    needs: [validate, test]
+    if: contains(fromJSON(needs.validate.outputs.packages), 'sdk')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+
+      - name: Bump version
+        working-directory: sdk
+        run: |
+          npm version ${{ inputs.version }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
+          echo "## SDK Release" >> $GITHUB_STEP_SUMMARY
+          echo "Version: \`$NEW_VERSION\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build
+        working-directory: sdk
+        run: npm run build
+
+      - name: Publish
+        if: inputs.dry-run == false
+        working-directory: sdk
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry run
+        if: inputs.dry-run == true
+        working-directory: sdk
+        run: npm publish --access public --dry-run
+
+      - name: Commit version bump
+        if: inputs.dry-run == false
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sdk/package.json
+          git commit -m "release: @micronet/sdk@${{ env.NEW_VERSION }}"
+          git tag "sdk@${{ env.NEW_VERSION }}"
+          git push origin main --tags
+
+  # ── Release apps ─────────────────────────────────────────────────────────
+  release-apps:
+    needs: [validate, test]
+    if: contains(fromJSON(needs.validate.outputs.packages), 'apps')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+
+      - name: Bump version
+        working-directory: apps
+        run: |
+          npm version ${{ inputs.version }} --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
+          echo "## Apps Release" >> $GITHUB_STEP_SUMMARY
+          echo "Version: \`$NEW_VERSION\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build
+        working-directory: apps
+        run: npm run build
+
+      - name: Publish
+        if: inputs.dry-run == false
+        working-directory: apps
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry run
+        if: inputs.dry-run == true
+        working-directory: apps
+        run: npm publish --access public --dry-run
+
+      - name: Commit version bump
+        if: inputs.dry-run == false
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/package.json
+          git commit -m "release: @micronet/apps@${{ env.NEW_VERSION }}"
+          git tag "apps@${{ env.NEW_VERSION }}"
+          git push origin main --tags
+
+  # ── Release summary ──────────────────────────────────────────────────────
+  release-summary:
+    needs: [release-kernel, release-sdk, release-apps]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| @micronet/kernel | ${{ needs.release-kernel.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| @micronet/sdk | ${{ needs.release-sdk.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| @micronet/apps | ${{ needs.release-apps.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "> ⚠️ This was a dry run — no packages were published." >> $GITHUB_STEP_SUMMARY
+          fi
