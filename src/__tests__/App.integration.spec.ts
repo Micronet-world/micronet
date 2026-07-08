@@ -469,9 +469,7 @@ describe('App Integration', () => {
   it('transition component is used for screen changes', async () => {
     const wrapper = mount(App, { global: { plugins: [i18n] } })
 
-    // The transition wrapper should exist
-    const transition = wrapper.findComponent({ name: 'Transition' })
-    // Transition may be rendered as a fragment; verify navigation still works
+    // Verify navigation works through the transition wrapper
     await swipeUp(wrapper, '.lock-screen')
     expect(wrapper.find('.home-screen').exists()).toBe(true)
   })

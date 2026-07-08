@@ -8,7 +8,6 @@ import {
   configureLoader,
   unloadAllApps,
   registerAppInstance,
-  decodeBundle,
   encodeBundle,
   buildBundle,
 } from '@micronet/sdk'
@@ -128,7 +127,7 @@ describe('app-loader', () => {
 
       loadAppsSync(entries)
 
-      const reg = getRegisteredScreen('test-reg')
+      const reg = getRegisteredScreen('test-reg' as any)
       expect(reg).toBeDefined()
       expect(reg!.meta.label).toBe('Test test-reg')
     })
