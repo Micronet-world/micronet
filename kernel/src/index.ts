@@ -27,7 +27,7 @@ export type { FileItem, FileType } from './composables/useFileStore'
 export { useBluetooth } from './composables/useBluetooth'
 export type { BTDevice, BTCharacteristic } from './composables/useBluetooth'
 export { useKeyboard } from './composables/useKeyboard'
-export type { KeyboardLayout, KeyboardOptions } from './composables/useKeyboard'
+export type { KeyboardLayout, KeyboardOptions, UseKeyboardReturn } from './composables/useKeyboard'
 
 // Components
 export { default as KeyboardView } from './components/KeyboardView.vue'

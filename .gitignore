@@ -19,6 +19,7 @@ public/apps/*.mnapp
 # TypeScript declaration build artifacts — these belong in dist/, never in src/.
 # (kernel/sdk/apps tsconfigs emit declarations; guard against them leaking into src/)
 kernel/src/**/*.d.ts
+!kernel/src/vue-shims.d.ts
 kernel/src/**/*.d.ts.map
 sdk/src/**/*.d.ts
 sdk/src/**/*.d.ts.map

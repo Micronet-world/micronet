@@ -1,4 +1,4 @@
-import { ref, readonly } from 'vue'
+import { ref, readonly, type Ref, type DeepReadonly } from 'vue'
 
 export type KeyboardLayout = 'default' | 'shift' | 'numeric' | 'symbol'
 
@@ -77,7 +77,24 @@ export function destroyKeyboardListeners() {
   focusOutHandler = null
 }
 
-export function useKeyboard() {
+export interface UseKeyboardReturn {
+  isVisible: DeepReadonly<Ref<boolean>>
+  inputValue: DeepReadonly<Ref<string>>
+  activeElement: DeepReadonly<Ref<HTMLInputElement | HTMLTextAreaElement | null>>
+  currentLayout: DeepReadonly<Ref<KeyboardLayout>>
+  isShiftActive: DeepReadonly<Ref<boolean>>
+  show(options?: KeyboardOptions): void
+  hide(): void
+  toggle(options?: KeyboardOptions): void
+  setInput(value: string): void
+  syncActiveInput(value: string): void
+  setLayout(layout: KeyboardLayout): void
+  toggleShift(): void
+  submit(): void
+  destroy(): void
+}
+
+export function useKeyboard(): UseKeyboardReturn {
   initGlobalListeners()
 
   function show(options?: KeyboardOptions) {
