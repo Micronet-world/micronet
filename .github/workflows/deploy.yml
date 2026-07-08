@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy & Sync
 
 on:
   push:
@@ -48,55 +48,6 @@ jobs:
         run: npx vue-tsc -b --noEmit
       - name: Run tests
         run: npm run test
-
-  # ── Build ────────────────────────────────────────────────────────────────
-  build:
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-          cache: npm
-      - run: npm ci
-      - name: Full production build
-        run: npm run build
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-          retention-days: 3
-
-  # ── Deploy to Cloudflare Workers ─────────────────────────────────────────
-  deploy-cloudflare:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-          cache: npm
-      - run: npm ci
-      - name: Full production build
-        run: npm run build
-      - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
-      - name: Deployment URL
-        run: |
-          echo "## Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Deployed to Cloudflare Workers" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**URL:** https://micronet.pages.dev" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
 
   # ── Sync kernel to sub-repo ──────────────────────────────────────────────
   sync-kernel:
@@ -161,22 +112,20 @@ jobs:
           SUBTREE_HEAD=$(git subtree split --prefix=apps)
           git push apps ${SUBTREE_HEAD}:main --force
 
-  # ── Deploy summary ───────────────────────────────────────────────────────
-  deploy-summary:
-    needs: [deploy-cloudflare, sync-kernel, sync-sdk, sync-apps]
+  # ── Sync summary ─────────────────────────────────────────────────────────
+  sync-summary:
+    needs: [sync-kernel, sync-sdk, sync-apps]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Deployment Summary
+      - name: Sync Summary
         run: |
-          echo "## Deploy Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Sync Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Cloudflare | ${{ needs.deploy-cloudflare.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Sync kernel | ${{ needs.sync-kernel.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Sync sdk | ${{ needs.sync-sdk.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Sync apps | ${{ needs.sync-apps.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| kernel | ${{ needs.sync-kernel.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| sdk | ${{ needs.sync-sdk.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| apps | ${{ needs.sync-apps.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
